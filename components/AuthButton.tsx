@@ -2,20 +2,19 @@
 
 import { useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import type { User } from '@supabase/supabase-js'
+import type { AuthUser } from '@/lib/auth'
 
 /**
- * Steward sign-in — magic link only, no password. Adapted from
- * geographic-community-webapp/components/AuthButton.tsx (same auth mechanism, generic
- * Tailwind classes here instead of that project's custom design tokens, and copy
- * reframed for stewards specifically since residents never sign in in this app).
+ * Sign-in — magic link only, no password. Same mechanism for stewards and residents alike:
+ * whichever role(s) a given email resolves to is decided per-page (resolveActiveSteward /
+ * resolveApprovedResident in lib/application.ts), not by this button.
  */
 
 type Props = {
-  user: User | null
+  user: AuthUser | null
 }
 
-export default function StewardAuthButton({ user }: Props) {
+export default function AuthButton({ user }: Props) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
@@ -49,24 +48,24 @@ export default function StewardAuthButton({ user }: Props) {
   }
 
   const inputClass =
-    'w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+    'w-full border border-border rounded-xl px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent'
 
   if (user) {
     return (
       <div className="relative shrink-0">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="shrink-0 text-sm px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 max-w-[160px] truncate"
+          className="shrink-0 text-base px-4 py-2 rounded-full transition-colors cursor-pointer font-medium border border-border text-ink hover:bg-surface-muted max-w-[200px] truncate"
           title={user.email}
         >
           {user.email}
         </button>
         {open && (
-          <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-52 space-y-2">
-            <p className="text-xs text-gray-500 break-all">{user.email}</p>
+          <div className="absolute right-0 top-full mt-1 z-50 bg-surface border border-border rounded-2xl shadow-lg p-4 w-60 space-y-3">
+            <p className="text-sm text-muted break-all">{user.email}</p>
             <button
               onClick={handleSignOut}
-              className="w-full text-left text-xs text-red-600 hover:text-red-700 transition-colors cursor-pointer font-medium"
+              className="w-full text-left text-sm text-red-600 hover:text-red-700 transition-colors cursor-pointer font-medium"
             >
               Sign out
             </button>
@@ -86,24 +85,24 @@ export default function StewardAuthButton({ user }: Props) {
           setError(null)
           setEmail('')
         }}
-        className="shrink-0 text-sm px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-medium border border-gray-300 text-gray-700 hover:bg-gray-100"
+        className="shrink-0 text-base px-4 py-2 rounded-full transition-colors cursor-pointer font-medium border border-border text-ink hover:bg-surface-muted"
       >
-        Steward sign in
+        Sign in
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-4 w-64">
+        <div className="absolute right-0 top-full mt-1 z-50 bg-surface border border-border rounded-2xl shadow-lg p-5 w-72">
           {sent ? (
             <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-900">Check your email</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-base font-medium text-ink">Check your email</p>
+              <p className="text-sm text-muted">
                 We sent a magic link to <strong>{email}</strong>. Click it to sign in.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSignIn} className="space-y-3">
-              <p className="text-sm font-medium text-gray-900">Sign in as a steward</p>
-              <p className="text-xs text-gray-500">We&apos;ll send you a magic link — no password needed.</p>
+              <p className="text-base font-medium text-ink">Sign in</p>
+              <p className="text-sm text-muted">We&apos;ll send you a magic link — no password needed.</p>
               <input
                 type="email"
                 value={email}
@@ -113,11 +112,11 @@ export default function StewardAuthButton({ user }: Props) {
                 autoFocus
                 className={inputClass}
               />
-              {error && <p className="text-xs text-red-600">{error}</p>}
+              {error && <p className="text-sm text-red-600">{error}</p>}
               <button
                 type="submit"
                 disabled={!email.trim() || sending}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full bg-accent text-white py-2.5 rounded-full text-base font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]"
               >
                 {sending ? 'Sending…' : 'Send magic link'}
               </button>

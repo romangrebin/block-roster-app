@@ -19,6 +19,16 @@ export type Block = {
   canvasBackground: unknown | null
   status: BlockStatus
   residentExportEnabled: boolean
+  // Steward-controlled: the Lending Library is opt-in complexity, off by default. Nothing about
+  // items themselves is deleted when this is turned off — the tab just stops showing.
+  lendingLibraryEnabled: boolean
+  // Pseudo-secret slug for the public/private landing page at /<code> — see lib/blockCode.ts.
+  code: string
+  // Shown to anyone who knows the code, no sign-in required.
+  publicBlurb: string | null
+  // Shown only to a signed-in approved resident or active steward — see
+  // resolveApprovedResident/getResidentDirectory in lib/application.ts.
+  privateNotes: string | null
   createdAt: string
 }
 
@@ -26,6 +36,11 @@ export type BlockInput = {
   name: string
   canvasType?: CanvasType
   boundary?: Feature<Polygon | MultiPolygon>
+  code?: string
+  publicBlurb?: string | null
+  privateNotes?: string | null
+  residentExportEnabled?: boolean
+  lendingLibraryEnabled?: boolean
 }
 
 export type ResidenceStatus = 'unreached' | 'current' | 'vacant'
@@ -100,17 +115,14 @@ export type ContactMethodInput = {
   visibility?: ContactVisibility
 }
 
-export type StewardStatus = 'invited' | 'active' | 'inactive'
+export type StewardStatus = 'active' | 'inactive'
 
 export type Steward = {
   id: string
   blockId: string
-  userId: string | null // null until an invited steward accepts
+  userId: string
   addedBy: string | null // steward id; null for founding steward(s)
   status: StewardStatus
-  invitedEmail: string | null
-  inviteToken: string | null
-  inviteExpiresAt: string | null
   lastActiveAt: string | null
   createdAt: string
 }
@@ -121,4 +133,39 @@ export type ConfirmationLogEntry = {
   residentId: string | null
   confirmedBy: string | null // steward id; null = resident self-confirmed
   confirmedAt: string
+}
+
+/**
+ * The Lending Library's starter categories — deliberately just a plain string at the database
+ * level (no CHECK constraint), so growing this list later is a one-line code change, not a
+ * migration. Roman: "I *REALLY* don't want extra, unused categories," so keep this short and
+ * only add to it once there's a real need, not speculatively.
+ */
+export const ITEM_CATEGORIES = ['tool', 'book', 'game', 'other'] as const
+export type ItemCategory = (typeof ITEM_CATEGORIES)[number]
+
+export const ITEM_CATEGORY_LABEL: Record<ItemCategory, string> = {
+  tool: 'Tool',
+  book: 'Book',
+  game: 'Game',
+  other: 'Other',
+}
+
+export type Item = {
+  id: string
+  // A person's belonging, not tied to their address — survives a move within the same
+  // community cleanly, and roommates each have their own items rather than sharing one pool.
+  residentId: string
+  name: string
+  description: string | null
+  category: ItemCategory
+  createdAt: string
+  updatedAt: string | null
+}
+
+export type ItemInput = {
+  residentId: string
+  name: string
+  description?: string | null
+  category?: ItemCategory
 }
