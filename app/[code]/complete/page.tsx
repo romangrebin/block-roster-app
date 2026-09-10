@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { getUserFromServerComponent } from '@/lib/auth'
-import { verifyContactMethod, resolveActiveSteward, approveResident } from '@/lib/application'
-import { getRepository } from '@/lib/db'
+import { verifyAndMaybeAutoApprove } from '@/lib/application'
 import PageContainer from '@/components/PageContainer'
 
 // Where the resident intake magic link lands — app/api/auth/callback has already exchanged
@@ -35,21 +34,8 @@ export default async function JoinCompletePage({
 
   let autoApproved = false
   try {
-    const contactMethod = await verifyContactMethod(contactMethodId, user.id, user.email)
-
-    // A steward registering their own residence doesn't need another steward to approve them —
-    // they're already the trusted party who'd normally be the one clicking Approve. Only kicks in
-    // if they're not already approved some other way (idempotent re-verification, etc.).
-    const repo = getRepository()
-    const resident = await repo.residents.getById(contactMethod.residentId)
-    if (resident && resident.status === 'pending') {
-      const residence = await repo.residences.getById(resident.residenceId)
-      const steward = residence ? await resolveActiveSteward(residence.blockId, user.id) : null
-      if (steward) {
-        await approveResident(resident.id, steward.id)
-        autoApproved = true
-      }
-    }
+    const result = await verifyAndMaybeAutoApprove(contactMethodId, user.id, user.email)
+    autoApproved = result.autoApproved
   } catch {
     return (
       <PageContainer className="space-y-2">

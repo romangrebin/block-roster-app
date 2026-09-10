@@ -777,6 +777,47 @@ demand like this file.
      `signOut()` — same fix shape as everywhere else in this app that mutates server state.
   `tsc`/lint clean, routes smoke-tested — not yet opened in a browser. 2026-09-09.
 
+- **Feature, skip the redundant email step when already signed in** — Roman asked directly: if
+  someone's already signed in, why make them enter their email and go through the confirmation
+  round-trip to register a residence? There wasn't a good reason — a prior magic link already
+  proved they control that inbox, so asking again (and sending a second confirmation email) was
+  pure friction. `ResidentIntakeForm` now takes a `signedInEmail` prop; when set, there's no email
+  input at all, just a "Registering as {email}" line. `POST /api/residences/[id]/register` checks
+  the caller's session (`getUser`) and, if it matches the submitted email, calls a new
+  `verifyAndMaybeAutoApprove` (extracted from `app/[code]/complete/page.tsx`'s existing verify+
+  auto-approve-if-steward logic, now shared by both) right there — server-side, no magic link
+  needed — and reports `autoVerified`/`autoApproved` back. The form skips straight to a "You're
+  registered!" success screen instead of "check your email" whenever that happens. Falls back to
+  the original flow untouched if the visitor isn't signed in, or edits in a different email than
+  their session's (not possible in the UI right now since the field is gone when signed in, but
+  the server-side check is what actually decides this, not a UI assumption). Also fixed a stale
+  comment in `lib/auth.ts` claiming only stewards get persistent accounts — residents have too,
+  since the resident-directory-via-sign-in feature. `tsc`/lint clean, routes smoke-tested — **not
+  yet opened in a browser**. 2026-09-09.
+
+- **Feature, steward email notifications on new registrations** — Roman asked whether stewards
+  ("admins") could get an email when someone registers. New `lib/email.ts` — a minimal
+  `sendEmail()` via a plain `fetch` to Resend's HTTP API (no SDK; one endpoint didn't justify the
+  dependency), reusing the same Resend account/domain already verified for Supabase Auth's own
+  SMTP, just newly exposed to this app's own server code via `RESEND_API_KEY`/`RESEND_FROM_EMAIL`
+  (added to `.env.local.example`; **not set yet — Roman needs to add these in `.env.local` and
+  Vercel before this actually sends anything**). Never throws — a failed/misconfigured send is
+  logged and swallowed, same graceful-degradation stance as `lib/overpass.ts`.
+  New `notifyStewardsOfNewRegistration` (`lib/application.ts`) resolves a block's active stewards'
+  emails via the Supabase Admin API (`stewards` only stores a `userId`, not an email) and sends
+  one notification to all of them. Wired into `verifyAndMaybeAutoApprove` — fires exactly when a
+  resident finishes email verification *and* isn't auto-approved (a steward registering
+  themselves doesn't need to notify anyone; there's nothing to review). Deliberately triggered at
+  verification, not at the raw form submission — notifying on submission would also fire for
+  registrations that are abandoned before ever confirming the email (exactly the kind of stray
+  pending resident Roman had to manually delete a few passes ago), which would just be noise.
+  Guarded by a new `alreadyVerified` check in the same function so reloading the confirmation page
+  (or clicking an already-used magic link twice) can't re-send the notification. Also added
+  `SITE_URL` (server-side base URL, since there's no `window.location` here) so the notification
+  email can link straight back to the community's page — omitted from the email entirely if unset,
+  rather than guessing a wrong domain. `tsc`/lint clean, routes smoke-tested — **not yet opened in
+  a browser, and not actually testable at all until Roman sets the three new env vars**. 2026-09-09.
+
 ## Resolved
 
 - **Bug, confirmed fixed by Roman — shape edits weren't saving (four reports)** — root cause: a

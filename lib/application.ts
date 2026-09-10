@@ -1,4 +1,6 @@
 import { getRepository } from './db'
+import { createSupabaseAdminClient } from './supabase-admin'
+import { sendEmail } from './email'
 import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Resident, Steward } from './types'
 
 /**
@@ -64,6 +66,73 @@ export async function verifyContactMethod(
   }
   if (contactMethod.verifiedAt) return contactMethod // idempotent
   return repo.contactMethods.markVerified(contactMethodId, userId)
+}
+
+/**
+ * Emails every active steward of a block when a resident finishes registering and still needs
+ * approval — the point where a steward can actually do something about it (verifying first,
+ * rather than notifying on the raw form submission, avoids pinging stewards about registrations
+ * abandoned before the confirmation link is ever clicked). Steward emails come from Supabase
+ * Auth itself (`stewards` only stores a `userId`) via the admin API, one lookup per steward —
+ * fine at the handful-of-stewards-per-community scale this app operates at.
+ */
+async function notifyStewardsOfNewRegistration(blockId: string, residentName: string, residenceLabel: string) {
+  const repo = getRepository()
+  const [block, stewards] = await Promise.all([repo.blocks.getById(blockId), repo.stewards.listByBlock(blockId)])
+  if (!block) return
+  const activeStewardUserIds = stewards.filter((s) => s.status === 'active').map((s) => s.userId)
+  if (activeStewardUserIds.length === 0) return
+
+  const admin = createSupabaseAdminClient()
+  const emails: string[] = []
+  for (const userId of activeStewardUserIds) {
+    const { data } = await admin.auth.admin.getUserById(userId)
+    if (data.user?.email) emails.push(data.user.email)
+  }
+  if (emails.length === 0) return
+
+  const siteUrl = process.env.SITE_URL
+  const reviewLink = siteUrl ? `<p><a href="${siteUrl}/${block.code}">Review it in ${block.name}</a></p>` : ''
+  await sendEmail({
+    to: emails,
+    subject: `${residentName} wants to join ${block.name}`,
+    html: `<p><strong>${residentName}</strong> just registered at <strong>${residenceLabel}</strong> and is waiting for a steward to approve them.</p>${reviewLink}`,
+  })
+}
+
+/**
+ * Verifies a contact method, then either auto-approves (if the verifying session belongs to an
+ * active steward of that residence's block — they're already the trusted party who'd normally
+ * be the one clicking Approve) or notifies the block's stewards that someone's waiting on them.
+ * Shared by app/[code]/complete (a fresh magic-link click) and the register route's fast path
+ * (the visitor was already signed in under this exact email, so there's nothing left for a
+ * magic link to prove). Guarded by `alreadyVerified` so reloading the confirmation page (or
+ * clicking an already-used magic link again) can't re-send the steward notification.
+ */
+export async function verifyAndMaybeAutoApprove(
+  contactMethodId: string,
+  userId: string,
+  verifiedValue: string
+): Promise<{ contactMethod: ContactMethod; autoApproved: boolean }> {
+  const repo = getRepository()
+  const alreadyVerified = !!(await repo.contactMethods.getById(contactMethodId))?.verifiedAt
+
+  const contactMethod = await verifyContactMethod(contactMethodId, userId, verifiedValue)
+  let autoApproved = false
+  if (!alreadyVerified) {
+    const resident = await repo.residents.getById(contactMethod.residentId)
+    if (resident && resident.status === 'pending') {
+      const residence = await repo.residences.getById(resident.residenceId)
+      const steward = residence ? await resolveActiveSteward(residence.blockId, userId) : null
+      if (steward) {
+        await approveResident(resident.id, steward.id)
+        autoApproved = true
+      } else if (residence) {
+        await notifyStewardsOfNewRegistration(residence.blockId, resident.name, residence.nickname || residence.label)
+      }
+    }
+  }
+  return { contactMethod, autoApproved }
 }
 
 export async function approveResident(residentId: string, stewardId: string): Promise<Resident> {

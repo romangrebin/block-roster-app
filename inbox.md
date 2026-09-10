@@ -5,6 +5,5 @@ that's a folder only Claude actively edits, this isn't.
 ---
 
 
-- In the "Add Item" flow, can we have names for the fields? e.g. "item name", "longer description", "category"
-- Can we add some additional visual clue to the residence list that hints that a residence with a resident can be clicked to expand and see more info? Something subtle, but intuitive, matching common design practice
-- The "Sign Out" button seems to do literally nothing. JK that's not true, on refresh the user is signed out. The page should immediately react, though.
+-  can we change the default dog's name away from biscuit? we actually know a biscuit so its a bit awkward
+- Is there a way to change a community's name?

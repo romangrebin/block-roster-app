@@ -155,7 +155,12 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 {joinOptions.length === 0 ? (
                   <p className="text-base text-muted">No residences have been set up for this community yet.</p>
                 ) : (
-                  <ResidentIntakeForm code={block.code} residences={joinOptions} canvasType={block.canvasType} />
+                  <ResidentIntakeForm
+                    code={block.code}
+                    residences={joinOptions}
+                    canvasType={block.canvasType}
+                    signedInEmail={user?.email ?? null}
+                  />
                 )}
               </div>
             ) : null
@@ -184,7 +189,12 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
           {joinOptions.length === 0 ? (
             <p className="text-base text-muted">No residences have been set up for this community yet.</p>
           ) : (
-            <ResidentIntakeForm code={block.code} residences={joinOptions} canvasType={block.canvasType} />
+            <ResidentIntakeForm
+              code={block.code}
+              residences={joinOptions}
+              canvasType={block.canvasType}
+              signedInEmail={user?.email ?? null}
+            />
           )}
         </div>
       )}

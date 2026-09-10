@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServerComponentClient } from './supabase-server'
 
-// Steward auth specifically — residents verify a contact method via OTP during intake but
-// never get a persistent account, so only stewards ever sign in through this module.
+// Shared by stewards and residents alike — a resident's OTP verification during intake creates
+// a real, persistent Supabase Auth session too (see verifyContactMethod in lib/application.ts),
+// not just a one-time confirmation.
 
 export type AuthUser = {
   id: string

@@ -36,20 +36,29 @@ type ResidenceOption = { id: string; label: string; nickname: string | null; sha
  * residences without one yet), give a name + email (+ optional phone), confirm by tapping the
  * emailed link — app/[code]/complete is where that link lands and finishes it. Phone is
  * unverified/informational only — no phone-OTP path exists yet.
+ *
+ * If the visitor is already signed in, `signedInEmail` skips asking for an email at all — a
+ * prior magic link already proved they control that inbox, so there's nothing left for another
+ * one to verify. The register route recognizes this (email matches the signed-in session) and
+ * finishes verification immediately server-side; this form just skips straight to the success
+ * screen instead of sending a second, redundant confirmation email.
  */
 export default function ResidentIntakeForm({
   code,
   residences,
   canvasType,
+  signedInEmail,
 }: {
   code: string
   residences: ResidenceOption[]
   canvasType: CanvasType
+  signedInEmail?: string | null
 }) {
   const [sent, setSent] = useState(false)
+  const [registered, setRegistered] = useState<{ autoApproved: boolean } | null>(null)
   const [residenceId, setResidenceId] = useState(residences[0]?.id ?? '')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(signedInEmail ?? '')
   const [emailVisibility, setEmailVisibility] = useState<ContactVisibility>('block_wide')
   const [phone, setPhone] = useState('')
   const [phoneVisibility, setPhoneVisibility] = useState<ContactVisibility>('block_wide')
@@ -82,6 +91,12 @@ export default function ResidentIntakeForm({
       return
     }
 
+    if (body.autoVerified) {
+      setSubmitting(false)
+      setRegistered({ autoApproved: body.autoApproved })
+      return
+    }
+
     const completePath = `/${code}/complete?contactMethodId=${body.contactMethodId}`
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -96,6 +111,19 @@ export default function ResidentIntakeForm({
       return
     }
     setSent(true)
+  }
+
+  if (registered) {
+    return (
+      <div className="space-y-1">
+        <p className="text-lg font-medium text-ink">You&apos;re registered!</p>
+        <p className="text-base text-muted">
+          {registered.autoApproved
+            ? "You're approved automatically since you're already a steward here."
+            : 'A steward will approve you soon — no further action needed.'}
+        </p>
+      </div>
+    )
   }
 
   if (sent) {
@@ -159,14 +187,24 @@ export default function ResidentIntakeForm({
           <label className="block text-base font-medium text-ink">Email</label>
           <VisibilitySelect value={emailVisibility} onChange={setEmailVisibility} />
         </div>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          className={inputClass}
-        />
+        {signedInEmail ? (
+          // Signed in already means a prior magic link already proved they control this inbox —
+          // asking again (and sending yet another confirmation email) would be pure friction with
+          // no security benefit, so there's nothing to type here, just a confirmation of who
+          // they're registering as.
+          <p className="text-base text-ink">
+            Registering as <strong>{signedInEmail}</strong>
+          </p>
+        ) : (
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            className={inputClass}
+          />
+        )}
       </div>
       <div>
         <div className="flex items-center justify-between gap-3 mb-1.5">
