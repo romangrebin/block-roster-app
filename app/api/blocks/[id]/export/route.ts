@@ -29,18 +29,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const headers = ['Residence', 'Nickname', 'Residence status', 'Resident', 'Email', 'Phone']
   const rows: string[][] = []
 
+  // Every residence gets at least one row — a residence with no residents comes out as a blank
+  // line rather than being absent, so the export doubles as a template a steward can fill in
+  // (e.g. after moving to a spreadsheet).
+  const residenceRow = (residence: { label: string; nickname: string | null; status: string }) => [
+    residence.label,
+    residence.nickname ?? '',
+    residence.status,
+  ]
+
   if (isSteward) {
     const residences = await repo.residences.listByBlock(blockId)
     for (const residence of residences) {
       const residents = await repo.residents.listByResidence(residence.id)
+      if (residents.length === 0) {
+        rows.push([...residenceRow(residence), '', '', ''])
+        continue
+      }
       for (const resident of residents) {
         const contacts = await repo.contactMethods.listByResident(resident.id)
         const email = contacts.find((c) => c.type === 'email')
         const phone = contacts.find((c) => c.type === 'phone')
         rows.push([
-          residence.label,
-          residence.nickname ?? '',
-          residence.status,
+          ...residenceRow(residence),
           `${resident.name} (${resident.status})`,
           email?.value ?? '',
           phone?.value ?? '',
@@ -50,17 +61,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } else {
     const directory = await getResidentDirectory(blockId)
     for (const { residence, residents } of directory) {
+      if (residents.length === 0) {
+        rows.push([...residenceRow(residence), '', '', ''])
+        continue
+      }
       for (const { resident, contacts } of residents) {
         const email = contacts.find((c) => c.type === 'email')
         const phone = contacts.find((c) => c.type === 'phone')
-        rows.push([
-          residence.label,
-          residence.nickname ?? '',
-          residence.status,
-          resident.name,
-          email?.value ?? '',
-          phone?.value ?? '',
-        ])
+        rows.push([...residenceRow(residence), resident.name, email?.value ?? '', phone?.value ?? ''])
       }
     }
   }
