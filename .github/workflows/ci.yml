@@ -18,6 +18,11 @@ jobs:
 
       - run: npm ci
 
+      # app/ uses Next's generated route helper types (LayoutProps, PageProps, …), which live in
+      # .next/types/ — a fresh checkout doesn't have them, so tsc must run after typegen.
+      - name: Generate Next route types
+        run: npx next typegen
+
       - name: Typecheck
         run: npx tsc --noEmit
 
