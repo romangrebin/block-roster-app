@@ -1,26 +1,25 @@
 import type { NextConfig } from "next";
 
 // --- Content-Security-Policy ------------------------------------------------------------------
-// Shipped in REPORT-ONLY mode: violations print to the browser console, nothing is blocked.
-// To finish it:
-//   1. `npm run build && npm start` (test a PRODUCTION build — `next dev`'s HMR needs
-//      'unsafe-eval' and would create noise that won't exist in prod).
-//   2. Click through everything: create a community, draw a boundary, use the address search,
-//      open every map, register as a resident, sign in.
-//   3. Note each "Refused to … because it violates … Content-Security-Policy" console line and
-//      add the missing origin to the right directive below.
-//   4. Flip CSP_ENFORCE to true.
-const CSP_ENFORCE = false;
+// Enforcing, after a report-only pass against a production build (create a community, draw a
+// boundary, address search + suggestions, maps, sign-in — all clean). If a later change needs
+// a new origin: flip CSP_ENFORCE to false, `npm run build && npm start`, reproduce with the
+// console open, add the origin the "Refused to …" line names, then flip back.
+const CSP_ENFORCE = true;
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  // 'unsafe-inline' covers Next's inline bootstrap/hydration scripts; 'unsafe-eval' is only
-  // needed by `next dev` — check whether a prod build still trips it before keeping it.
+  // 'unsafe-inline' covers Next's inline bootstrap/hydration scripts. 'unsafe-eval' was kept
+  // as a precaution (the report-only pass didn't flag script-src); dropping it is possible
+  // future tightening, its own test.
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data:",
-  "img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://*.carto.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.basemaps.cartocdn.com https://*.carto.com https://nominatim.openstreetmap.org https://overpass-api.de https://overpass.kumi.systems",
+  // basemaps.cartocdn.com is used bare (no subdomain), which `*.basemaps.cartocdn.com` does
+  // NOT match — both forms are listed. MapLibre fetches raster tiles via fetch(), so the CARTO
+  // host has to be in connect-src too, not just img-src.
+  "img-src 'self' data: blob: https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com https://fonts.openmaptiles.org https://nominatim.openstreetmap.org https://overpass-api.de https://overpass.kumi.systems",
   "worker-src 'self' blob:",
   "base-uri 'self'",
   "form-action 'self'",
