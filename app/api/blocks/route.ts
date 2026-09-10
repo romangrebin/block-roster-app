@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { createBlock } from '@/lib/application'
 import { validatePolygonGeometry, MAX_BLOCK_AREA_KM2 } from '@/lib/geometryValidation'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
 import type { BlockInput } from '@/lib/types'
 
 export async function POST(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
 
   const body = await request.json()
-  const name = typeof body.name === 'string' ? body.name.trim() : ''
+  const name = cappedText(body.name, MAX_TEXT.name)
   if (!name) return NextResponse.json({ error: 'Community name is required' }, { status: 400 })
 
   const input: BlockInput = { name }

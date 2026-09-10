@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { resolveActiveSteward } from '@/lib/application'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
+import { clientErrorMessage } from '@/lib/apiError'
 
 // Bulk-creates residences from a plain label list — parcel-import and floor-plan modes are
-// deferred, this is the only path for now.
+// deferred, this is the only path for now. Capped per call so one request can't enqueue an
+// unbounded insert loop; a real community adds far fewer than this, in several sittings.
+const MAX_LABELS_PER_CALL = 500
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: blockId } = await params
   const user = await getUser(request)
@@ -16,8 +21,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const body = await request.json()
   const rawLabels: unknown[] = Array.isArray(body.labels) ? body.labels : []
   const labels = rawLabels
-    .map((label) => (typeof label === 'string' ? label.trim() : ''))
+    .map((label) => cappedText(label, MAX_TEXT.label))
     .filter((label) => label.length > 0)
+    .slice(0, MAX_LABELS_PER_CALL)
   if (labels.length === 0) {
     return NextResponse.json({ error: 'At least one residence label is required' }, { status: 400 })
   }
@@ -32,7 +38,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     return NextResponse.json({ residences }, { status: 201 })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to add residences'
-    return NextResponse.json({ error: message }, { status: 400 })
+    return NextResponse.json({ error: clientErrorMessage(err, 'Failed to add residences') }, { status: 400 })
   }
 }

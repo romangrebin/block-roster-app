@@ -40,3 +40,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only working notes (see notes/INDEX.md) — kept out of the public repo.
+# philosophy.md stays tracked: it's short, durable, secret-free, and CLAUDE.md @imports it.
+/notes/*
+!/notes/philosophy.md
+/inbox.md
+
+# agent/editor local state
+/.claude/
+.aider*
+.cursor*

@@ -3,17 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
+import { MAX_TEXT } from '@/lib/validation'
 
 const inputClass =
-  'flex-1 border border-border rounded-lg px-2.5 py-1 text-base font-medium text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent'
+  'w-full border border-border rounded-lg px-2.5 py-1 text-base font-medium text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent'
 
 /**
- * Steward-only inline rename/delete for one residence row. One "Edit" button now does both
- * rename and shape-editing — it opens the rename input here *and* (if `onEditShape` is given,
- * i.e. the community's on a geo_map canvas) puts the big Residences map into edit mode for this
- * residence, per Roman: "just 1 edit button, it does both the shape and the name." Save/Cancel
- * here also drive that same map edit (via `onShapeEditCommand`) — the map itself has no Save/
- * Cancel of its own, since Roman noticed canceling in the list used to leave it stuck mid-edit.
+ * Steward-only rename / delete / shape-edit for one residence, shown in its detail panel.
+ * "Edit" opens the rename input only. From there an "Edit shape" button (present on a geo_map
+ * canvas) hands the residence's shape to the big map for editing — a deliberate second step,
+ * not an automatic view switch, which Roman found jarring on a phone. Save commits both the
+ * rename and, if a shape edit is in progress, the shape (via `onShapeEditCommand` — the map has
+ * no Save/Cancel of its own, since canceling elsewhere used to leave it stuck mid-edit).
  */
 export default function ResidenceControls({
   residenceId,
@@ -93,11 +94,12 @@ export default function ResidenceControls({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className="w-full space-y-2">
         <input
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          maxLength={MAX_TEXT.label}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
@@ -108,17 +110,30 @@ export default function ResidenceControls({
           autoFocus
           className={inputClass}
         />
-        <button
-          onClick={handleSave}
-          disabled={submitting || !value.trim()}
-          className="text-sm text-accent font-medium cursor-pointer disabled:opacity-40 shrink-0"
-        >
-          Save
-        </button>
-        <button onClick={cancel} className="text-sm text-muted cursor-pointer shrink-0">
-          Cancel
-        </button>
-        {error && <span className="text-sm text-red-600 shrink-0">{error}</span>}
+        <div className="flex items-center gap-3 flex-wrap">
+          {onEditShape &&
+            (shapeEditActive ? (
+              <span className="text-sm text-muted">Editing the shape on the map — Save to keep it.</span>
+            ) : (
+              <button
+                onClick={() => onEditShape(residenceId, shape)}
+                className="text-sm px-3 py-1 rounded-full border border-border text-ink hover:bg-surface-muted transition-colors cursor-pointer font-medium"
+              >
+                Edit shape
+              </button>
+            ))}
+          <button
+            onClick={handleSave}
+            disabled={submitting || !value.trim()}
+            className="text-sm text-accent font-medium cursor-pointer disabled:opacity-40"
+          >
+            Save
+          </button>
+          <button onClick={cancel} className="text-sm text-muted cursor-pointer">
+            Cancel
+          </button>
+          {error && <span className="text-sm text-red-600">{error}</span>}
+        </div>
       </div>
     )
   }
@@ -129,12 +144,10 @@ export default function ResidenceControls({
           (ResidencesSection's call), so these are now a deliberate reveal rather than something
           always sitting there; worth a bit more visual weight than a plain muted text link. The
           official label itself is shown by the parent row's own heading now (alongside any
-          nickname), not repeated here. */}
+          nickname), not repeated here. "Edit shape" is a second step once editing, not part of
+          this button — see the doc comment. */}
       <button
-        onClick={() => {
-          setEditing(true)
-          onEditShape?.(residenceId, shape)
-        }}
+        onClick={() => setEditing(true)}
         className="text-sm px-3 py-1 rounded-full border border-border text-ink hover:bg-surface-muted transition-colors cursor-pointer font-medium"
       >
         Edit

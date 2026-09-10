@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
+import { clientErrorMessage } from '@/lib/apiError'
 
 /** A resident edits their own freeform blurb — ownership verified via their verified contact method's userId. */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -17,8 +19,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!owns) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
   const body = await request.json()
-  const blurb = typeof body.blurb === 'string' ? body.blurb.trim() || null : null
+  const blurb = cappedText(body.blurb, MAX_TEXT.blurb) || null
 
-  const updated = await repo.residents.setBlurb(residentId, blurb)
-  return NextResponse.json({ resident: updated })
+  try {
+    const updated = await repo.residents.setBlurb(residentId, blurb)
+    return NextResponse.json({ resident: updated })
+  } catch (err) {
+    return NextResponse.json({ error: clientErrorMessage(err, 'Failed to update blurb') }, { status: 400 })
+  }
 }

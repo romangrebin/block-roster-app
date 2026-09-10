@@ -1,6 +1,7 @@
 import { getRepository } from './db'
 import { createSupabaseAdminClient } from './supabase-admin'
 import { sendEmail } from './email'
+import { escapeHtml } from './validation'
 import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Resident, Steward } from './types'
 
 /**
@@ -91,12 +92,19 @@ async function notifyStewardsOfNewRegistration(blockId: string, residentName: st
   }
   if (emails.length === 0) return
 
+  // Every interpolated value below is user-supplied (resident name/residence label) or free-text
+  // a steward set (community name) — escape before it goes into an HTML email body.
+  const safeName = escapeHtml(residentName)
+  const safeLabel = escapeHtml(residenceLabel)
+  const safeBlockName = escapeHtml(block.name)
   const siteUrl = process.env.SITE_URL
-  const reviewLink = siteUrl ? `<p><a href="${siteUrl}/${block.code}">Review it in ${block.name}</a></p>` : ''
+  const reviewLink = siteUrl
+    ? `<p><a href="${siteUrl}/${encodeURIComponent(block.code)}">Review it in ${safeBlockName}</a></p>`
+    : ''
   await sendEmail({
     to: emails,
     subject: `${residentName} wants to join ${block.name}`,
-    html: `<p><strong>${residentName}</strong> just registered at <strong>${residenceLabel}</strong> and is waiting for a steward to approve them.</p>${reviewLink}`,
+    html: `<p><strong>${safeName}</strong> just registered at <strong>${safeLabel}</strong> and is waiting for a steward to approve them.</p>${reviewLink}`,
   })
 }
 

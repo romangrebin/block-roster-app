@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import ResidenceMapPicker from './ResidenceMapPicker'
+import { MAX_TEXT } from '@/lib/validation'
 import type { CanvasType, ContactVisibility } from '@/lib/types'
 
 const visibilitySelectClass =
@@ -177,6 +178,7 @@ export default function ResidentIntakeForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={MAX_TEXT.name}
           required
           autoFocus
           className={inputClass}
@@ -200,6 +202,7 @@ export default function ResidentIntakeForm({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            maxLength={MAX_TEXT.email}
             placeholder="you@example.com"
             required
             className={inputClass}
@@ -217,6 +220,7 @@ export default function ResidentIntakeForm({
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          maxLength={MAX_TEXT.phone}
           placeholder="(555) 555-5555"
           className={inputClass}
         />

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { registerResident, verifyAndMaybeAutoApprove } from '@/lib/application'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
 import type { ContactVisibility } from '@/lib/types'
 
 function parseVisibility(value: unknown): ContactVisibility {
@@ -16,9 +17,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id: residenceId } = await params
   const body = await request.json()
 
-  const name = typeof body.name === 'string' ? body.name.trim() : ''
-  const email = typeof body.email === 'string' ? body.email.trim() : ''
-  const phone = typeof body.phone === 'string' ? body.phone.trim() : ''
+  const name = cappedText(body.name, MAX_TEXT.name)
+  const email = cappedText(body.email, MAX_TEXT.email)
+  const phone = cappedText(body.phone, MAX_TEXT.phone)
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
   if (!email || !email.includes('@')) {
     return NextResponse.json({ error: 'A valid email is required' }, { status: 400 })

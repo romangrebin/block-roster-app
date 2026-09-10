@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { resolveActiveSteward } from '@/lib/application'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
 import { ITEM_CATEGORIES, type ItemCategory } from '@/lib/types'
 import type { BlockRosterRepository } from '@/lib/repository'
 
@@ -42,11 +43,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const body = await request.json()
   const patch: { name?: string; description?: string | null; category?: ItemCategory } = {}
   if (typeof body.name === 'string') {
-    const name = body.name.trim()
+    const name = cappedText(body.name, MAX_TEXT.itemName)
     if (!name) return NextResponse.json({ error: 'Item name cannot be empty' }, { status: 400 })
     patch.name = name
   }
-  if (typeof body.description === 'string') patch.description = body.description.trim() || null
+  if (typeof body.description === 'string') patch.description = cappedText(body.description, MAX_TEXT.itemDescription) || null
   const category = parseCategory(body.category)
   if (category) patch.category = category
 

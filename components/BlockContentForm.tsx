@@ -2,6 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { MAX_TEXT } from '@/lib/validation'
+import CharCount from './CharCount'
+
+// Mirrors MAX_CODE_LENGTH in lib/blockCode.ts — kept as a literal here so this Client
+// Component doesn't pull that server-only module (it imports node:crypto) into the bundle.
+const MAX_CODE_LENGTH = 32
 
 const inputClass =
   'w-full border border-border rounded-xl px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent'
@@ -95,6 +101,7 @@ export default function BlockContentForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={MAX_TEXT.name}
           required
           className={inputClass}
         />
@@ -109,6 +116,7 @@ export default function BlockContentForm({
           type="text"
           value={code}
           onChange={(e) => setCode(e.target.value)}
+          maxLength={MAX_CODE_LENGTH}
           required
           className={`${inputClass} font-mono`}
         />
@@ -120,21 +128,25 @@ export default function BlockContentForm({
         <textarea
           value={publicBlurb}
           onChange={(e) => setPublicBlurb(e.target.value)}
+          maxLength={MAX_TEXT.publicBlurb}
           rows={3}
           className={inputClass}
         />
+        <CharCount value={publicBlurb} max={MAX_TEXT.publicBlurb} />
       </div>
       <div>
         <label className="block text-base font-medium text-ink mb-1.5">
-          Residents-only notes{' '}
+          About this community{' '}
           <span className="text-muted font-normal">(only signed-in, approved residents see this)</span>
         </label>
         <textarea
           value={privateNotes}
           onChange={(e) => setPrivateNotes(e.target.value)}
+          maxLength={MAX_TEXT.privateNotes}
           rows={6}
           className={inputClass}
         />
+        <CharCount value={privateNotes} max={MAX_TEXT.privateNotes} />
       </div>
       <label className="flex items-center gap-2.5 cursor-pointer">
         <input

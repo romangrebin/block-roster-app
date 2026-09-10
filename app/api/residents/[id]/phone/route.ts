@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
 import type { ContactVisibility } from '@/lib/types'
 
 function parseVisibility(value: unknown): ContactVisibility {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const body = await request.json()
-  const value = typeof body.value === 'string' ? body.value.trim() : ''
+  const value = cappedText(body.value, MAX_TEXT.phone)
   if (!value) return NextResponse.json({ error: 'Phone number is required' }, { status: 400 })
 
   const contactMethod = await repo.contactMethods.create({
@@ -65,7 +66,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!existingPhone) return NextResponse.json({ error: 'No phone number on file yet' }, { status: 404 })
 
   const body = await request.json()
-  const value = typeof body.value === 'string' ? body.value.trim() : ''
+  const value = cappedText(body.value, MAX_TEXT.phone)
   if (!value) return NextResponse.json({ error: 'Phone number is required' }, { status: 400 })
 
   const contactMethod = await repo.contactMethods.setValue(existingPhone.id, value)

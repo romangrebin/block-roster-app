@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Block Roster
 
-## Getting Started
+A tool for neighborhood stewards to build and maintain an accurate, **resident-owned** contact
+roster for their block or building. Not a communication tool — this is about *persistence*:
+knowing who lives here, and still knowing it in five years.
 
-First, run the development server:
+The roster anchors on **residences**, not people. People churn; a residence is fixed. When
+someone moves out, that's a gap to fill on the map — not a record that quietly disappears.
+
+## How it works
+
+1. **A steward sets up the community** — draws the boundary, lists the addresses (by hand or
+   from OpenStreetMap). Day one is a complete-but-empty gap map.
+2. **Neighbors join with a code, not a public link.** Pick your residence, verify your email.
+   The code (`/<code>`, e.g. `curious-otter-42`) isn't listed anywhere.
+3. **A steward approves you**, and then it's your roster too — see who's reached, read what your
+   steward posted, export the whole thing anytime.
+
+Optional: a per-community **Lending Library** (tools, books, games) a steward can switch on.
+
+## Tech
+
+- **Next.js 16** (App Router) + React 19, TypeScript strict.
+- **Supabase** — Postgres + Auth (magic-link, no passwords). All data access goes through
+  Next.js API routes calling shared application-layer functions
+  (`lib/application.ts`); the routes enforce authorization by resolving the caller's session to
+  a steward/resident row. The DB uses a service-role key server-side, with Row Level Security
+  enabled as a defense-in-depth backstop. See `notes/minimal-schema-proposal.md`.
+- **MapLibre GL** + CARTO/OpenStreetMap basemap for boundary and residence shapes; Nominatim
+  for geocoding, Overpass for address suggestions (all keyless OSM services).
+- **Tailwind v4** design tokens in `app/globals.css`.
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+nvm use                       # Node 22 (see .nvmrc); Next 16 needs ≥ 20.9
+npm install
+cp .env.local.example .env.local   # then fill in the values (see that file's comments)
+npm run dev                   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_CARTO_API_KEY`. Optional: `ADMIN_EMAILS`,
+`RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `SITE_URL` (steward notification emails). Full notes
+are in `.env.local.example`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Database schema lives in `supabase/migrations/` (the single source of truth — no `schema.sql`).
+Apply changes with `supabase db push`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npx tsc --noEmit
+npm test
+```
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
+| Path | What's there |
+|---|---|
+| `app/` | Routes — `page.tsx` (landing), `[code]/` (the one community page for everyone), `admin/`, `api/` |
+| `components/` | Client components — forms, maps, the residences workspace |
+| `lib/` | `application.ts` (cross-table logic), `repository.ts` + `adapters/` (data access), `auth.ts`, `validation.ts`, map/CSV/geometry helpers |
+| `supabase/migrations/` | Schema |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see [LICENSE](LICENSE).

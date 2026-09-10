@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { resolveActiveSteward } from '@/lib/application'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
+import { clientErrorMessage } from '@/lib/apiError'
 
 /**
  * A resident's friendlier name for their own residence — separate from the steward-owned,
- * address-based label. Authorized for a steward, or any resident whose own residenceId matches
+ * address-based label. Authorized for a steward, or any *approved* resident of that residence
  * (checked via a verified contact method's userId, same ownership pattern as the blurb route) —
  * deliberately not restricted to just one resident when a residence has several (roommates).
+ * Matches what the UI exposes: the editor only renders for a steward or an approved resident.
  */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: residenceId } = await params
@@ -23,6 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const residents = await repo.residents.listByResidence(residenceId)
     let owns = false
     for (const resident of residents) {
+      if (resident.status !== 'approved') continue
       const contacts = await repo.contactMethods.listByResident(resident.id)
       if (contacts.some((c) => c.userId === user.id)) {
         owns = true
@@ -33,8 +37,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const body = await request.json()
-  const nickname = typeof body.nickname === 'string' ? body.nickname.trim() || null : null
+  const nickname = cappedText(body.nickname, MAX_TEXT.nickname) || null
 
-  const updated = await repo.residences.update(residenceId, { nickname })
-  return NextResponse.json({ residence: updated })
+  try {
+    const updated = await repo.residences.update(residenceId, { nickname })
+    return NextResponse.json({ residence: updated })
+  } catch (err) {
+    return NextResponse.json({ error: clientErrorMessage(err, 'Failed to update nickname') }, { status: 400 })
+  }
 }

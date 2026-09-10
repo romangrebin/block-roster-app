@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { MAX_TEXT } from '@/lib/validation'
 
 /**
  * A friendlier, resident-set name for a residence, separate from the steward-owned official
@@ -53,6 +54,7 @@ export default function ResidenceNicknameEditor({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          maxLength={MAX_TEXT.nickname}
           placeholder="e.g. Yellow house on the corner"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -79,9 +81,15 @@ export default function ResidenceNicknameEditor({
     )
   }
 
+  // Rendered after a "Nickname:" label in the residence row, so this is just the value slot plus
+  // a short action — not a standalone "+ Add a nickname" button (which read as ambiguous next to
+  // the per-resident actions below it).
   return (
-    <button onClick={() => setEditing(true)} className="text-sm text-accent hover:underline cursor-pointer">
-      {nickname ? 'Edit nickname' : '+ Add a nickname'}
-    </button>
+    <span className="inline-flex items-center gap-1.5">
+      {nickname && <span className="text-ink">{nickname}</span>}
+      <button onClick={() => setEditing(true)} className="text-sm text-accent hover:underline cursor-pointer">
+        {nickname ? 'Edit' : 'Add one'}
+      </button>
+    </span>
   )
 }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import DrawableMap from './DrawableMap'
+import { MAX_TEXT } from '@/lib/validation'
 
 export default function CreateBlockForm() {
   const router = useRouter()
@@ -44,6 +45,7 @@ export default function CreateBlockForm() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={MAX_TEXT.name}
           placeholder="e.g. 400 block of Elm St"
           required
           className="w-full border border-border rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"

@@ -3,6 +3,8 @@ import { getUser } from '@/lib/auth'
 import { resolveActiveSteward } from '@/lib/application'
 import { getRepository } from '@/lib/db'
 import { validateBlockCode, blockCodeErrorMessage } from '@/lib/blockCode'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
+import { clientErrorMessage } from '@/lib/apiError'
 import type { BlockInput } from '@/lib/types'
 
 // Steward-only: edits the community's name, code, public blurb, and private notes. Creating a
@@ -20,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const patch: Partial<BlockInput> = {}
 
   if (typeof body.name === 'string') {
-    const name = body.name.trim()
+    const name = cappedText(body.name, MAX_TEXT.name)
     if (!name) return NextResponse.json({ error: 'Community name cannot be empty' }, { status: 400 })
     patch.name = name
   }
@@ -31,8 +33,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     patch.code = result.code
   }
-  if (typeof body.publicBlurb === 'string') patch.publicBlurb = body.publicBlurb.trim() || null
-  if (typeof body.privateNotes === 'string') patch.privateNotes = body.privateNotes.trim() || null
+  if (typeof body.publicBlurb === 'string') patch.publicBlurb = cappedText(body.publicBlurb, MAX_TEXT.publicBlurb) || null
+  if (typeof body.privateNotes === 'string') patch.privateNotes = cappedText(body.privateNotes, MAX_TEXT.privateNotes) || null
   if (typeof body.residentExportEnabled === 'boolean') patch.residentExportEnabled = body.residentExportEnabled
   if (typeof body.lendingLibraryEnabled === 'boolean') patch.lendingLibraryEnabled = body.lendingLibraryEnabled
 
@@ -40,7 +42,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const block = await getRepository().blocks.update(blockId, patch)
     return NextResponse.json({ block })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to update community'
-    return NextResponse.json({ error: message }, { status: 400 })
+    return NextResponse.json({ error: clientErrorMessage(err, 'Failed to update community') }, { status: 400 })
   }
 }

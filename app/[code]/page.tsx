@@ -100,6 +100,12 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
         <CommunityTabs
           community={
             <div className="space-y-8">
+              {block.privateNotes && (
+                <div className="rounded-2xl border border-border bg-surface-muted p-5">
+                  <p className="text-sm font-medium text-muted mb-1.5">About this community</p>
+                  <p className="text-base text-ink whitespace-pre-wrap">{block.privateNotes}</p>
+                </div>
+              )}
               <ResidencesWorkspace
                 isSteward={isSteward}
                 blockId={block.id}
@@ -118,12 +124,6 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 viewerEmail={user?.email ?? null}
                 viewerResidenceId={viewerResident?.residenceId ?? null}
               />
-              {block.privateNotes && (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-medium text-ink">From your steward</h2>
-                  <p className="text-base text-ink whitespace-pre-wrap">{block.privateNotes}</p>
-                </div>
-              )}
             </div>
           }
           library={

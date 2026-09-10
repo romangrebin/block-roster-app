@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { MAX_TEXT } from '@/lib/validation'
 
 /**
  * Adds one residence at a time — not a bulk paste box, so this pairs naturally with a future
@@ -54,6 +55,7 @@ export default function AddResidencesForm({ blockId }: { blockId: string }) {
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
+          maxLength={MAX_TEXT.label}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()

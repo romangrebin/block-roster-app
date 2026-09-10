@@ -37,11 +37,14 @@ export function generateBlockCode(): string {
   return `${adjective}-${animal}-${number}`
 }
 
+export const MIN_CODE_LENGTH = 3
+export const MAX_CODE_LENGTH = 32
+
 export type BlockCodeValidationError = 'too_short' | 'too_long' | 'invalid_characters' | 'reserved'
 
 const BLOCK_CODE_ERROR_MESSAGES: Record<BlockCodeValidationError, string> = {
-  too_short: 'Code must be at least 3 characters.',
-  too_long: 'Code must be 32 characters or fewer.',
+  too_short: `Code must be at least ${MIN_CODE_LENGTH} characters.`,
+  too_long: `Code must be ${MAX_CODE_LENGTH} characters or fewer.`,
   invalid_characters: 'Code can only contain lowercase letters, numbers, and hyphens.',
   reserved: 'That code is reserved — please pick another.',
 }
@@ -53,8 +56,8 @@ export function blockCodeErrorMessage(error: BlockCodeValidationError): string {
 /** Normalizes and validates a steward-chosen vanity code. Does not check uniqueness — that's a DB constraint. */
 export function validateBlockCode(raw: string): { code: string } | { error: BlockCodeValidationError } {
   const code = raw.trim().toLowerCase()
-  if (code.length < 3) return { error: 'too_short' }
-  if (code.length > 32) return { error: 'too_long' }
+  if (code.length < MIN_CODE_LENGTH) return { error: 'too_short' }
+  if (code.length > MAX_CODE_LENGTH) return { error: 'too_long' }
   if (!/^[a-z0-9-]+$/.test(code)) return { error: 'invalid_characters' }
   if (RESERVED_CODES.has(code)) return { error: 'reserved' }
   return { code }

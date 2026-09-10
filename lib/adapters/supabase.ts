@@ -218,8 +218,9 @@ function requireNoError<T>(data: T | null, error: { message: string } | null, co
 
 // ── Adapter ──
 
-// Postgres unique_violation. A random 8-char code (32^8 possibilities) colliding is
-// astronomically unlikely — this loop is a correctness backstop, not an expected path.
+// Postgres unique_violation. The generated code is adjective-animal-number (~200k
+// combinations, see lib/blockCode.ts) — a collision is rare, so this retry loop is a
+// correctness backstop, not an expected path.
 const UNIQUE_VIOLATION = '23505'
 const MAX_CODE_ATTEMPTS = 5
 

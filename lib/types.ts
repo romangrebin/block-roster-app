@@ -1,7 +1,7 @@
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 
 /**
- * Domain types for Block Roster — schema v3, mirrors ../supabase/schema.sql /
+ * Domain types for Block Roster — schema v3, mirrors ../supabase/migrations/*.sql /
  * notes/minimal-schema-proposal.md exactly. See notes/product-brief.md for product rationale.
  */
 

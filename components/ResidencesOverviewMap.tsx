@@ -11,6 +11,7 @@ import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson'
 import type { Residence } from '@/lib/types'
 import type { SuggestionPreview } from '@/lib/overpass'
 import { BASEMAP_STYLE, boundsOf, PREVIEW_SELECTED, PREVIEW_UNSELECTED } from '@/lib/mapStyle'
+import { MAX_TEXT } from '@/lib/validation'
 
 const STATUS_COLOR: Record<Residence['status'], string> = {
   current: '#16a34a',
@@ -450,12 +451,15 @@ export default function ResidencesOverviewMap({
     setSaveError(null)
   }
 
+  // Only react to a *real* request — the parent clears editShapeRequest to null when the map
+  // goes idle after an edit, and treating that null as "nonce 0, a new request" would flip the
+  // map straight back into editing-existing (and leave the drawing hint stuck on screen).
   const [lastEditRequestNonce, setLastEditRequestNonce] = useState(editShapeRequest?.nonce ?? 0)
-  if ((editShapeRequest?.nonce ?? 0) !== lastEditRequestNonce) {
-    setLastEditRequestNonce(editShapeRequest?.nonce ?? 0)
+  if (editShapeRequest && editShapeRequest.nonce !== lastEditRequestNonce) {
+    setLastEditRequestNonce(editShapeRequest.nonce)
     setMode('editing-existing')
-    setEditingResidenceId(editShapeRequest?.residenceId ?? null)
-    setPendingShape(editShapeRequest?.shape ?? null)
+    setEditingResidenceId(editShapeRequest.residenceId)
+    setPendingShape(editShapeRequest.shape ?? null)
     setLabel('')
     setSaveError(null)
   }
@@ -597,6 +601,7 @@ export default function ResidencesOverviewMap({
                   type="text"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
+                  maxLength={MAX_TEXT.label}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()

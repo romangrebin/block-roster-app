@@ -21,6 +21,7 @@ export default function EnterCodeBox() {
         type="text"
         value={code}
         onChange={(e) => setCode(e.target.value)}
+        maxLength={32}
         placeholder="Enter your community's code"
         className="flex-1 min-w-0 border border-border rounded-full px-5 py-3 text-base bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
       />

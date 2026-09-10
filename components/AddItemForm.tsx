@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ITEM_CATEGORIES, ITEM_CATEGORY_LABEL, type ItemCategory } from '@/lib/types'
+import { MAX_TEXT } from '@/lib/validation'
+import CharCount from './CharCount'
 
 /** Adds one item at a time to the caller's own Lending Library listing — same one-at-a-time
  * pattern as AddResidencesForm, for the same reason: no bulk-paste complexity for a v1 feature. */
@@ -48,6 +50,7 @@ export default function AddItemForm({ blockId }: { blockId: string }) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            maxLength={MAX_TEXT.itemName}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
@@ -78,10 +81,12 @@ export default function AddItemForm({ blockId }: { blockId: string }) {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          maxLength={MAX_TEXT.itemDescription}
           rows={2}
           placeholder="Optional — condition, size, anything worth knowing before someone asks"
           className="w-full border border-border rounded-xl px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
         />
+        <CharCount value={description} max={MAX_TEXT.itemDescription} />
       </div>
       <button
         onClick={submit}

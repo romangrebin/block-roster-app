@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ContactMethod } from '@/lib/types'
+import { MAX_TEXT } from '@/lib/validation'
+import CharCount from './CharCount'
 
 /**
  * A signed-in approved resident's own settings: their freeform blurb (always visible to
@@ -125,10 +127,12 @@ export default function MyInfoForm({
         <textarea
           value={blurb}
           onChange={(e) => setBlurb(e.target.value)}
+          maxLength={MAX_TEXT.blurb}
           rows={3}
           placeholder="e.g. Happy to lend tools, new to the block, have a dog named Waffles…"
           className="w-full border border-border rounded-xl px-4 py-2.5 text-base bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
         />
+        <CharCount value={blurb} max={MAX_TEXT.blurb} />
         <button
           onClick={handleSaveBlurb}
           disabled={savingBlurb || blurb === (initialBlurb ?? '')}
@@ -151,6 +155,7 @@ export default function MyInfoForm({
                   type="tel"
                   value={phoneEditValue}
                   onChange={(e) => setPhoneEditValue(e.target.value)}
+                  maxLength={MAX_TEXT.phone}
                   autoFocus
                   className="flex-1 min-w-0 border border-border rounded-lg px-2.5 py-1 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
                 />
@@ -212,6 +217,7 @@ export default function MyInfoForm({
               type="tel"
               value={phoneValue}
               onChange={(e) => setPhoneValue(e.target.value)}
+              maxLength={MAX_TEXT.phone}
               placeholder="Add a phone number (optional)"
               className="flex-1 min-w-0 border border-border rounded-xl px-4 py-2.5 text-base bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
             />

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { MAX_TEXT } from '@/lib/validation'
 import type { AuthUser } from '@/lib/auth'
 
 /**
@@ -113,6 +114,7 @@ export default function AuthButton({ user }: Props) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                maxLength={MAX_TEXT.email}
                 placeholder="you@example.com"
                 required
                 autoFocus

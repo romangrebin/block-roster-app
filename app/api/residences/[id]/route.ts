@@ -3,6 +3,8 @@ import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { resolveActiveSteward } from '@/lib/application'
 import { validatePolygonGeometry, MAX_PARCEL_AREA_KM2 } from '@/lib/geometryValidation'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
+import { clientErrorMessage } from '@/lib/apiError'
 import type { ResidenceInput } from '@/lib/types'
 
 /** Steward-only: rename a residence or set its map shape (see components/DrawableMap.tsx). */
@@ -21,7 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const body = await request.json()
   const patch: Partial<ResidenceInput> = {}
   if (typeof body.label === 'string') {
-    const label = body.label.trim()
+    const label = cappedText(body.label, MAX_TEXT.label)
     if (!label) return NextResponse.json({ error: 'Label cannot be empty' }, { status: 400 })
     patch.label = label
   }
@@ -38,8 +40,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updated = await repo.residences.update(residenceId, patch)
     return NextResponse.json({ residence: updated })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to update residence'
-    return NextResponse.json({ error: message }, { status: 400 })
+    return NextResponse.json({ error: clientErrorMessage(err, 'Failed to update residence') }, { status: 400 })
   }
 }
 

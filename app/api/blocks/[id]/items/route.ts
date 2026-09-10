@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { resolveApprovedResident } from '@/lib/application'
+import { cappedText, MAX_TEXT } from '@/lib/validation'
 import { ITEM_CATEGORIES, type ItemCategory } from '@/lib/types'
 
 function parseCategory(value: unknown): ItemCategory {
@@ -20,9 +21,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const body = await request.json()
-  const name = typeof body.name === 'string' ? body.name.trim() : ''
+  const name = cappedText(body.name, MAX_TEXT.itemName)
   if (!name) return NextResponse.json({ error: 'Item name is required' }, { status: 400 })
-  const description = typeof body.description === 'string' ? body.description.trim() || null : null
+  const description = cappedText(body.description, MAX_TEXT.itemDescription) || null
 
   const item = await getRepository().items.create({
     residentId: resident.id,
