@@ -126,7 +126,7 @@ export default function MyInfoForm({
           value={blurb}
           onChange={(e) => setBlurb(e.target.value)}
           rows={3}
-          placeholder="e.g. Happy to lend tools, new to the block, have a dog named Biscuit…"
+          placeholder="e.g. Happy to lend tools, new to the block, have a dog named Waffles…"
           className="w-full border border-border rounded-xl px-4 py-2.5 text-base bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
         />
         <button

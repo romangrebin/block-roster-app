@@ -818,6 +818,18 @@ demand like this file.
   rather than guessing a wrong domain. `tsc`/lint clean, routes smoke-tested — **not yet opened in
   a browser, and not actually testable at all until Roman sets the three new env vars**. 2026-09-09.
 
+- **Inbox batch, two items** —
+  1. *Awkward placeholder name* — `MyInfoForm`'s blurb placeholder example ("...have a dog named
+     Biscuit...") happened to match a dog Roman actually knows. Swapped to "Waffles."
+  2. *No way to change a community's name* — turned out `blocks.update` already supported a
+     `name` patch in the Supabase adapter, it just was never exposed anywhere above that layer:
+     `PATCH /api/blocks/[id]` didn't accept `name` in its body, and `BlockContentForm` (the
+     steward's code/blurb/notes/toggles form) had no field for it at all — `name` was only ever
+     settable once, at creation. Added both: the route now accepts and validates `name` (rejects
+     empty, same as the code field), and the form has a "Community name" input alongside the
+     rest, saved in the same one-PATCH round trip.
+  `tsc`/lint clean, routes smoke-tested — not yet opened in a browser. 2026-09-09.
+
 ## Resolved
 
 - **Bug, confirmed fixed by Roman — shape edits weren't saving (four reports)** — root cause: a

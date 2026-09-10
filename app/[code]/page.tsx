@@ -171,6 +171,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 <JoinLinkBox code={block.code} />
                 <BlockContentForm
                   blockId={block.id}
+                  name={block.name}
                   code={block.code}
                   publicBlurb={block.publicBlurb}
                   privateNotes={block.privateNotes}

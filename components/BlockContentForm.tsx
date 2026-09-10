@@ -7,12 +7,13 @@ const inputClass =
   'w-full border border-border rounded-xl px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent'
 
 /**
- * Steward-editable content for the community's public/private page at /<code>: the code itself,
- * a public welcome blurb, and a private field only signed-in approved residents (and
- * stewards) see. One form, one PATCH — see app/api/blocks/[id]/route.ts.
+ * Steward-editable content for the community's public/private page at /<code>: its name, the
+ * code itself, a public welcome blurb, and a private field only signed-in approved residents
+ * (and stewards) see. One form, one PATCH — see app/api/blocks/[id]/route.ts.
  */
 export default function BlockContentForm({
   blockId,
+  name: initialName,
   code: initialCode,
   publicBlurb: initialPublicBlurb,
   privateNotes: initialPrivateNotes,
@@ -20,6 +21,7 @@ export default function BlockContentForm({
   lendingLibraryEnabled: initialLendingLibraryEnabled,
 }: {
   blockId: string
+  name: string
   code: string
   publicBlurb: string | null
   privateNotes: string | null
@@ -27,6 +29,7 @@ export default function BlockContentForm({
   lendingLibraryEnabled: boolean
 }) {
   const router = useRouter()
+  const [name, setName] = useState(initialName)
   const [code, setCode] = useState(initialCode)
   const [publicBlurb, setPublicBlurb] = useState(initialPublicBlurb ?? '')
   const [privateNotes, setPrivateNotes] = useState(initialPrivateNotes ?? '')
@@ -37,6 +40,7 @@ export default function BlockContentForm({
   const [saved, setSaved] = useState(false)
 
   const dirty =
+    name !== initialName ||
     code !== initialCode ||
     publicBlurb !== (initialPublicBlurb ?? '') ||
     privateNotes !== (initialPrivateNotes ?? '') ||
@@ -45,7 +49,7 @@ export default function BlockContentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!code.trim()) return
+    if (!name.trim() || !code.trim()) return
     setSaving(true)
     setError(null)
     setSaved(false)
@@ -54,6 +58,7 @@ export default function BlockContentForm({
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        name: name.trim(),
         code: code.trim(),
         publicBlurb,
         privateNotes,
@@ -68,6 +73,7 @@ export default function BlockContentForm({
       return
     }
     const codeChanged = body.block.code !== initialCode
+    setName(body.block.name)
     setCode(body.block.code)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -83,6 +89,16 @@ export default function BlockContentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-base font-medium text-ink mb-1.5">Community name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          className={inputClass}
+        />
+      </div>
       <div>
         <label className="block text-base font-medium text-ink mb-1.5">Community code</label>
         <p className="text-sm text-muted mb-1.5">
@@ -144,7 +160,7 @@ export default function BlockContentForm({
       {error && <p className="text-base text-red-600">{error}</p>}
       <button
         type="submit"
-        disabled={!code.trim() || saving || !dirty}
+        disabled={!name.trim() || !code.trim() || saving || !dirty}
         className="bg-accent text-white px-6 py-2.5 rounded-full text-base font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]"
       >
         {saving ? 'Saving…' : saved ? 'Saved' : 'Save'}

@@ -5,7 +5,7 @@ import { getRepository } from '@/lib/db'
 import { validateBlockCode, blockCodeErrorMessage } from '@/lib/blockCode'
 import type { BlockInput } from '@/lib/types'
 
-// Steward-only: edits the community's code, public blurb, and private notes. Creating a
+// Steward-only: edits the community's name, code, public blurb, and private notes. Creating a
 // community and drawing its boundary happen elsewhere (app/api/blocks/route.ts) — this route is
 // just for the content a steward keeps up to date afterward.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -19,6 +19,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const body = await request.json()
   const patch: Partial<BlockInput> = {}
 
+  if (typeof body.name === 'string') {
+    const name = body.name.trim()
+    if (!name) return NextResponse.json({ error: 'Community name cannot be empty' }, { status: 400 })
+    patch.name = name
+  }
   if (typeof body.code === 'string') {
     const result = validateBlockCode(body.code)
     if ('error' in result) {
