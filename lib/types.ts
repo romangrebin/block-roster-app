@@ -49,6 +49,10 @@ export type Residence = {
   id: string
   blockId: string
   label: string
+  // Resident-facing, set by any approved resident of this residence (or a steward) — the
+  // official label stays address-based; this is the friendlier name neighbors actually use.
+  // Purely cosmetic: never used for de-dup, sorting, or matching against OSM suggestions.
+  nickname: string | null
   // Format depends on the parent block's canvasType: geojson polygon (geo_map), normalized
   // 0-1 image-space polygon (image, not yet designed), or null (none/list-only).
   shape: Feature<Polygon | MultiPolygon> | unknown | null
@@ -65,6 +69,7 @@ export type Residence = {
 export type ResidenceInput = {
   blockId: string
   label: string
+  nickname?: string | null
   shape?: Feature<Polygon | MultiPolygon> | unknown
   sortOrder?: number
 }

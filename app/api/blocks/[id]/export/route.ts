@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Not authorized to export this roster' }, { status: 403 })
   }
 
-  const headers = ['Residence', 'Residence status', 'Resident', 'Email', 'Phone']
+  const headers = ['Residence', 'Nickname', 'Residence status', 'Resident', 'Email', 'Phone']
   const rows: string[][] = []
 
   if (isSteward) {
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const phone = contacts.find((c) => c.type === 'phone')
         rows.push([
           residence.label,
+          residence.nickname ?? '',
           residence.status,
           `${resident.name} (${resident.status})`,
           email?.value ?? '',
@@ -52,7 +53,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       for (const { resident, contacts } of residents) {
         const email = contacts.find((c) => c.type === 'email')
         const phone = contacts.find((c) => c.type === 'phone')
-        rows.push([residence.label, residence.status, resident.name, email?.value ?? '', phone?.value ?? ''])
+        rows.push([
+          residence.label,
+          residence.nickname ?? '',
+          residence.status,
+          resident.name,
+          email?.value ?? '',
+          phone?.value ?? '',
+        ])
       }
     }
   }

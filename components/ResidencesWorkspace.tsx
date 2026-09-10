@@ -34,6 +34,7 @@ export default function ResidencesWorkspace({
   activeStewardUserIds,
   showExportLink,
   viewerEmail,
+  viewerResidenceId,
 }: {
   isSteward: boolean
   blockId: string
@@ -43,6 +44,7 @@ export default function ResidencesWorkspace({
   activeStewardUserIds: string[]
   showExportLink: boolean
   viewerEmail: string | null
+  viewerResidenceId: string | null
 }) {
   const [previewSuggestions, setPreviewSuggestions] = useState<SuggestionPreview[]>([])
   // Stable across re-renders unless `entries` itself changes — inlining this .map() would
@@ -85,6 +87,7 @@ export default function ResidencesWorkspace({
           blockBoundary={blockBoundary}
           canvasType={canvasType}
           showExportLink={showExportLink}
+          viewerResidenceId={viewerResidenceId}
           previewSuggestions={previewSuggestions}
           drawRequest={drawRequest}
           onMapModeChange={setMapMode}

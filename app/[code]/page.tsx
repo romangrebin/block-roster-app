@@ -31,7 +31,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
   const viewerContacts = viewerResident ? await repo.contactMethods.listByResident(viewerResident.id) : []
 
   const residences = await repo.residences.listByBlock(block.id)
-  const joinOptions = residences.map((r) => ({ id: r.id, label: r.label, shape: r.shape }))
+  const joinOptions = residences.map((r) => ({ id: r.id, label: r.label, nickname: r.nickname, shape: r.shape }))
 
   // Stewards see every resident (pending included) with full contact info and Approve/
   // promote/move-out controls; approved residents see the peer-safe view instead —
@@ -116,6 +116,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 activeStewardUserIds={activeStewardUserIds}
                 showExportLink={isSteward || block.residentExportEnabled}
                 viewerEmail={user?.email ?? null}
+                viewerResidenceId={viewerResident?.residenceId ?? null}
               />
               {block.privateNotes && (
                 <div className="space-y-2">

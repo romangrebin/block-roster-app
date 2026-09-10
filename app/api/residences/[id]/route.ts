@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { resolveActiveSteward } from '@/lib/application'
+import { validatePolygonGeometry, MAX_PARCEL_AREA_KM2 } from '@/lib/geometryValidation'
 import type { ResidenceInput } from '@/lib/types'
 
 /** Steward-only: rename a residence or set its map shape (see components/DrawableMap.tsx). */
@@ -24,7 +25,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!label) return NextResponse.json({ error: 'Label cannot be empty' }, { status: 400 })
     patch.label = label
   }
-  if (body.shape !== undefined) patch.shape = body.shape
+  if (body.shape !== undefined) {
+    // Guards against a residence's shape accidentally being drawn far larger than a real
+    // address/parcel (e.g. tracing most of the community by mistake) — the same failsafe
+    // already applied to the community's own boundary, one size class down.
+    const validation = validatePolygonGeometry(body.shape, MAX_PARCEL_AREA_KM2)
+    if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 })
+    patch.shape = body.shape
+  }
 
   try {
     const updated = await repo.residences.update(residenceId, patch)

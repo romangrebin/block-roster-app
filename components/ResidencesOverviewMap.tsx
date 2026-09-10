@@ -55,7 +55,7 @@ function toFeatureCollection(entries: ResidenceMapEntry[]): FeatureCollection {
         geometry: (e.residence.shape as Feature<Polygon | MultiPolygon>).geometry,
         properties: {
           id: e.residence.id,
-          label: e.residence.label,
+          label: e.residence.nickname || e.residence.label,
           status: e.residence.status,
           residents: e.residentNames.join(', '),
         },

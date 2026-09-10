@@ -15,10 +15,23 @@ import type { Feature, Polygon, MultiPolygon } from 'geojson'
 
 const OVERPASS_ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
 
+// A failsafe for a really big (or unusually address-dense) community boundary — Overpass itself
+// has no result limit on this query, and a huge response is slow to transfer/render for no real
+// benefit (a steward adding residences one boundary at a time doesn't need thousands at once).
+// Well above what any real community should ever return; see SuggestedAddresses.tsx for how a
+// truncated result is surfaced.
+export const MAX_SUGGESTED_ADDRESSES = 500
+
 export type SuggestedAddress = {
   label: string
   /** Set only when OSM has the address tagged directly on a closed building way; null otherwise — still a valid suggestion, just without a ready-made shape. */
   shape: Feature<Polygon> | null
+}
+
+export type SuggestedAddressResult = {
+  addresses: SuggestedAddress[]
+  totalFound: number
+  truncated: boolean
 }
 
 /** A shaped suggestion plus its checkbox state, mirrored from SuggestedAddresses up to ResidencesOverviewMap for previewing. */
@@ -142,7 +155,7 @@ async function queryOverpass(endpoint: string, query: string): Promise<{ element
 
 export async function suggestAddressesWithinBoundary(
   boundary: Feature<Polygon | MultiPolygon>
-): Promise<SuggestedAddress[]> {
+): Promise<SuggestedAddressResult> {
   const poly = exteriorRing(boundary)
     .map(([lon, lat]) => `${lat} ${lon}`)
     .join(' ')
@@ -171,5 +184,10 @@ export async function suggestAddressesWithinBoundary(
     const shape = element.type === 'way' && element.geometry ? wayToPolygon(element.geometry) : null
     byLabel.set(label, { label, shape })
   }
-  return [...byLabel.values()].sort((a, b) => a.label.localeCompare(b.label))
+  const sorted = [...byLabel.values()].sort((a, b) => a.label.localeCompare(b.label))
+  return {
+    addresses: sorted.slice(0, MAX_SUGGESTED_ADDRESSES),
+    totalFound: sorted.length,
+    truncated: sorted.length > MAX_SUGGESTED_ADDRESSES,
+  }
 }

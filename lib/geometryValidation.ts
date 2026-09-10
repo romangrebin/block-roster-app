@@ -8,9 +8,10 @@ import type { Feature, Polygon, MultiPolygon } from 'geojson'
  * very different scales — use the exported presets below rather than picking a number.
  */
 
-// A block boundary: generous enough for any real neighborhood block, small enough to
-// catch "drew the wrong thing" mistakes (e.g. an entire zip code).
-export const MAX_BLOCK_AREA_KM2 = 2
+// A community's boundary: generous enough for a real neighborhood, subdivision, or small HOA
+// (10 km² is roughly 1,000 typical city blocks), small enough to catch "drew the wrong thing"
+// mistakes (an entire zip code or city — Minneapolis alone is ~150 km²).
+export const MAX_BLOCK_AREA_KM2 = 10
 // A single address/parcel: should never be more than a fraction of a block.
 export const MAX_PARCEL_AREA_KM2 = 0.05
 

@@ -39,41 +39,50 @@ export default function AddItemForm({ blockId }: { blockId: string }) {
   }
 
   return (
-    <div className="space-y-2 border border-border rounded-xl p-3 bg-surface">
-      <div className="flex items-center gap-2 flex-wrap">
-        <input
-          ref={nameRef}
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              submit()
-            }
-          }}
-          placeholder="e.g. Ladder, Settlers of Catan, cordless drill"
-          className="flex-1 min-w-0 border border-border rounded-xl px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-        />
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value as ItemCategory)}
-          className="text-sm border border-border rounded-lg px-2 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
-        >
-          {ITEM_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {ITEM_CATEGORY_LABEL[c]}
-            </option>
-          ))}
-        </select>
+    <div className="space-y-3 border border-border rounded-xl p-3 bg-surface">
+      <div className="flex items-end gap-2 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <label className="block text-sm font-medium text-ink mb-1">Item name</label>
+          <input
+            ref={nameRef}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                submit()
+              }
+            }}
+            placeholder="e.g. Ladder, Settlers of Catan, cordless drill"
+            className="w-full border border-border rounded-xl px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">Category</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as ItemCategory)}
+            className="text-sm border border-border rounded-lg px-2 py-2.5 bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            {ITEM_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {ITEM_CATEGORY_LABEL[c]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        rows={2}
-        placeholder="Optional description — condition, size, anything worth knowing before someone asks"
-        className="w-full border border-border rounded-xl px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-      />
+      <div>
+        <label className="block text-sm font-medium text-ink mb-1">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          placeholder="Optional — condition, size, anything worth knowing before someone asks"
+          className="w-full border border-border rounded-xl px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+        />
+      </div>
       <button
         onClick={submit}
         disabled={submitting || !name.trim()}

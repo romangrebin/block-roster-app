@@ -28,7 +28,7 @@ function VisibilitySelect({
   )
 }
 
-type ResidenceOption = { id: string; label: string; shape: unknown }
+type ResidenceOption = { id: string; label: string; nickname: string | null; shape: unknown }
 
 /**
  * Resident self-registration: pick a residence (by tapping the map, if any residence has a
@@ -138,7 +138,7 @@ export default function ResidentIntakeForm({
         >
           {residences.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.label}
+              {r.nickname ? `${r.nickname} (${r.label})` : r.label}
             </option>
           ))}
         </select>

@@ -713,6 +713,70 @@ demand like this file.
   link); editing it without a re-verification round-trip would break that, so there's still no edit
   path for it anywhere in this app, by design. 2026-09-09.
 
+- **Feature, removing a pending resident + dropped "(unverified)" phone text** — Roman hit a
+  concrete case: a first registration attempt failed partway (Supabase's default-mailer rate
+  limit, hit while testing the deployed site) and left a stray pending resident with no way to
+  remove it — "awaiting verification" was just a passive label, no action attached. New
+  `DELETE /api/residents/[id]` (steward-only, deliberately restricted to `status === 'pending'` —
+  an approved resident has real history and should go through "Move out" instead, which preserves
+  a record rather than hard-deleting) and `RemovePendingResidentButton.tsx` (mirrors
+  `MoveResidentOutButton`'s confirm/fetch/refresh pattern), wired into both pending sub-cases in
+  `ResidencesSection.tsx` (verified-awaiting-approval, alongside `ApproveResidentButton`; and
+  unverified-awaiting-verification, alongside the "awaiting verification" text). Same pass: removed
+  "(unverified)" from the phone display in the residence list — there's no phone verification path
+  in this app at all (SMS OTP needs a paid vendor, an earlier deliberate call), so the word was
+  just noise with nothing a resident/steward could do about it; left the *email* verification
+  text alone since that one reflects a real, changeable state. `tsc`/lint clean — **not yet opened
+  in a browser**. 2026-09-09.
+
+- **Feature, residence nicknames + community/parcel size failsafes** — three asks in one message.
+  1. *Residence nicknames*: the official address-based label stays steward-owned, but any approved
+     resident of that residence (or a steward) can now set a friendlier nickname too — "Yellow
+     house on the corner" vs "4504 Longfellow Avenue." New `residences.nickname` column (plain
+     nullable `text`, migration `20260909020000_add_residence_nickname.sql`, pushed), a new
+     `PATCH /api/residences/[id]/nickname` (ownership-checked the same way as blurb/phone — a
+     verified contact method's `userId`, but checked against *any* resident of that residence, not
+     just one, since roommates should all be able to set it), and `ResidenceNicknameEditor.tsx`
+     (same reveal-on-select pattern as everything else in the list). Display: the nickname is now
+     the *primary* heading everywhere a residence's name shows (residence list, map popup, join/
+     registration dropdown, CSV export) whenever it's set, with the official label demoted to a
+     smaller secondary note — this needed pulling the label display out of `ResidenceControls`
+     (which used to own it) so it's shown consistently regardless of steward/selection state,
+     leaving `ResidenceControls` itself as just the Edit/Delete button pair.
+  2. *Community boundary size cap*: turned out to already exist (`lib/geometryValidation.ts`'s
+     `MAX_BLOCK_AREA_KM2`, silently ported from `geographic-community-webapp` — never surfaced to
+     Roman, not in any note). Bumped 2→10 km² (roughly 1,000 typical city blocks — generous for a
+     real neighborhood/subdivision/small HOA, still well short of "drew an entire city by mistake"
+     scale) and confirmed the existing 400-error path already surfaces its message end-to-end via
+     `CreateBlockForm`'s error state.
+  3. *Overpass suggestion count cap*: `suggestAddressesWithinBoundary` now caps at 500 results
+     (`MAX_SUGGESTED_ADDRESSES` in `lib/overpass.ts`) and reports `truncated`/`totalFound` back to
+     `SuggestedAddresses.tsx`, which shows an amber "showing the first N of M — draw a smaller
+     area" note when it kicks in. Also (a genuinely missing failsafe found while looking at this,
+     not explicitly asked for): `MAX_PARCEL_AREA_KM2` existed in the same file but was never
+     actually wired up anywhere — a single residence's shape had no size check at all. Now enforced
+     in `PATCH /api/residences/[id]` whenever a shape is set, using the same error-surfacing path
+     (`saveError` in `ResidencesOverviewMap`) already fixed for shape-save failures two passes ago.
+  `tsc`/lint clean, migration pushed, routes smoke-tested — **not yet opened in a browser**.
+  2026-09-09.
+
+- **Inbox batch, three small items** —
+  1. *"Add Item" fields had no labels* — just placeholder text, which disappears once a field has
+     content and gave the category `<select>` no context at all. `AddItemForm` now has a real
+     `<label>` above each field (Item name, Category, Description), same style as every other form
+     in the app.
+  2. *No visual hint that a residence row with residents expands* — the existing "N residents"
+     badge said *that* there's info, but nothing said *clicking reveals it*. Added a small chevron
+     (inline SVG, no icon library in this project yet — one glyph didn't justify adding one) inside
+     that same badge, rotating 180° when the row is selected — the standard disclosure-affordance
+     pattern, subtle since it's muted-colored like the badge itself.
+  3. *Sign Out visually did nothing until the next unrelated refresh* — `AuthButton`'s `user` prop
+     comes from the root layout Server Component (reads the session cookie); `signOut()` only
+     clears the session client-side, so the button kept showing the old signed-in email until
+     something else happened to re-run the layout. Added `router.refresh()` right after
+     `signOut()` — same fix shape as everywhere else in this app that mutates server state.
+  `tsc`/lint clean, routes smoke-tested — not yet opened in a browser. 2026-09-09.
+
 ## Resolved
 
 - **Bug, confirmed fixed by Roman — shape edits weren't saving (four reports)** — root cause: a

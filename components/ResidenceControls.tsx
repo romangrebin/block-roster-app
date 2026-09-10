@@ -124,11 +124,12 @@ export default function ResidenceControls({
   }
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <span className="text-base font-medium text-ink break-words">{label}</span>
+    <div className="flex items-center gap-2 flex-wrap">
       {/* Pill buttons, not bare text links — this only renders once the row is already selected
           (ResidencesSection's call), so these are now a deliberate reveal rather than something
-          always sitting there; worth a bit more visual weight than a plain muted text link. */}
+          always sitting there; worth a bit more visual weight than a plain muted text link. The
+          official label itself is shown by the parent row's own heading now (alongside any
+          nickname), not repeated here. */}
       <button
         onClick={() => {
           setEditing(true)

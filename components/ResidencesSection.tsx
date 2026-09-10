@@ -7,7 +7,9 @@ import type { SuggestionPreview } from '@/lib/overpass'
 import ApproveResidentButton from './ApproveResidentButton'
 import PromoteToStewardButton from './PromoteToStewardButton'
 import MoveResidentOutButton from './MoveResidentOutButton'
+import RemovePendingResidentButton from './RemovePendingResidentButton'
 import ResidenceControls from './ResidenceControls'
+import ResidenceNicknameEditor from './ResidenceNicknameEditor'
 import ResidencesOverviewMap, { type EditShapeRequest, type EditShapeCommand, type MapMode } from './ResidencesOverviewMap'
 
 type ResidentRow = { resident: Resident; contacts: ContactMethod[] }
@@ -35,6 +37,7 @@ export default function ResidencesSection({
   blockBoundary,
   canvasType,
   showExportLink,
+  viewerResidenceId = null,
   previewSuggestions = [],
   drawRequest = 0,
   onMapModeChange,
@@ -46,6 +49,9 @@ export default function ResidencesSection({
   blockBoundary: Feature<Polygon | MultiPolygon> | null
   canvasType: CanvasType
   showExportLink: boolean
+  /** The signed-in viewer's own residence, if they're an approved resident of one — lets that one
+   * row's nickname be edited even by a non-steward, without opening it up to every residence. */
+  viewerResidenceId?: string | null
   previewSuggestions?: SuggestionPreview[]
   /** Bumped by AddResidenceTools' "draw it yourself" option — forces Map view so the draw tool is actually visible. */
   drawRequest?: number
@@ -127,27 +133,16 @@ export default function ResidencesSection({
             }`}
           >
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              {isSteward && residence.id === selectedResidenceId ? (
-                // stopPropagation — the whole row is also a click target (selects it), and
-                // without this, clicking Edit/Delete/Save/Cancel (or just clicking into the
-                // rename input) would immediately toggle selection back off, which — now that
-                // ResidenceControls only renders *because* this row is selected — would unmount
-                // it mid-click instead of just being a cosmetic highlight flicker like before.
-                <div onClick={(e) => e.stopPropagation()}>
-                  <ResidenceControls
-                    residenceId={residence.id}
-                    label={residence.label}
-                    residentCount={residents.length}
-                    shape={residence.shape as Feature<Polygon | MultiPolygon> | null}
-                    onEditShape={canvasType === 'geo_map' ? requestEditShape : undefined}
-                    shapeEditActive={canvasType === 'geo_map' && isShapeEditActiveFor(residence.id)}
-                    onShapeEditCommand={sendShapeEditCommand}
-                  />
-                </div>
-              ) : (
-                <span className="text-base font-medium text-ink break-words">{residence.label}</span>
-              )}
-              <div className="flex items-center gap-2 shrink-0">
+              {/* The nickname (a resident-set friendlier name) is the primary heading whenever
+                  it's set, with the official address-based label demoted to a smaller secondary
+                  note — everyone sees this, not just whoever's editing. */}
+              <span className="text-base font-medium text-ink break-words">
+                {residence.nickname || residence.label}
+                {residence.nickname && (
+                  <span className="text-sm font-normal text-muted"> · {residence.label}</span>
+                )}
+              </span>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 {/* At-a-glance shape status — Roman: the resident-status badge (Current/Vacant/
                     Unreached) is unnecessary noise, geo_map canvases only. */}
                 {canvasType === 'geo_map' && (
@@ -160,15 +155,53 @@ export default function ResidencesSection({
                   </span>
                 )}
                 {/* Resident details are hidden below unless this row is selected (they could get
-                    long — a full blurb blew up a whole row's height) — this is the only hint,
-                    unselected, that there's anyone registered here at all. */}
+                    long — a full blurb blew up a whole row's height) — this badge is the hint
+                    that there's anyone registered here at all; the chevron (a standard
+                    disclosure affordance, rotates on selection) is the hint that clicking
+                    reveals more, not just a status readout. */}
                 {residents.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-surface-muted text-muted">
+                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-surface-muted text-muted">
                     {residents.length} resident{residents.length === 1 ? '' : 's'}
+                    <svg
+                      viewBox="0 0 12 12"
+                      className={`w-3 h-3 transition-transform duration-200 ${
+                        residence.id === selectedResidenceId ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 4.5L6 7.5L9 4.5" />
+                    </svg>
                   </span>
+                )}
+                {isSteward && residence.id === selectedResidenceId && (
+                  // stopPropagation — the whole row is also a click target (selects it), and
+                  // without this, clicking Edit/Delete/Save/Cancel (or just clicking into the
+                  // rename input) would immediately toggle selection back off, which — now that
+                  // ResidenceControls only renders *because* this row is selected — would unmount
+                  // it mid-click instead of just being a cosmetic highlight flicker like before.
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ResidenceControls
+                      residenceId={residence.id}
+                      label={residence.label}
+                      residentCount={residents.length}
+                      shape={residence.shape as Feature<Polygon | MultiPolygon> | null}
+                      onEditShape={canvasType === 'geo_map' ? requestEditShape : undefined}
+                      shapeEditActive={canvasType === 'geo_map' && isShapeEditActiveFor(residence.id)}
+                      onShapeEditCommand={sendShapeEditCommand}
+                    />
+                  </div>
                 )}
               </div>
             </div>
+            {residence.id === selectedResidenceId && (isSteward || residence.id === viewerResidenceId) && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <ResidenceNicknameEditor residenceId={residence.id} nickname={residence.nickname} />
+              </div>
+            )}
             {residents.length > 0 && residence.id === selectedResidenceId && (
               // stopPropagation for the same reason as ResidenceControls above — Approve/Promote/
               // Move-out are real buttons here (not local component state to lose), but without
@@ -190,16 +223,22 @@ export default function ResidencesSection({
                             {isSteward && !email.verifiedAt && ' (unverified)'}
                           </span>
                         )}
-                        {phone && <span className="text-muted"> · {phone.value} (unverified)</span>}
+                        {phone && <span className="text-muted"> · {phone.value}</span>}
                         {resident.blurb && (
                           <span className="block text-sm text-muted italic mt-0.5">{resident.blurb}</span>
                         )}
                       </span>
                       {isSteward && resident.status === 'pending' && email?.verifiedAt && (
-                        <ApproveResidentButton residentId={resident.id} />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <ApproveResidentButton residentId={resident.id} />
+                          <RemovePendingResidentButton residentId={resident.id} residentName={resident.name} />
+                        </div>
                       )}
                       {isSteward && resident.status === 'pending' && !email?.verifiedAt && (
-                        <span className="text-sm text-muted shrink-0">awaiting verification</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-sm text-muted">awaiting verification</span>
+                          <RemovePendingResidentButton residentId={resident.id} residentName={resident.name} />
+                        </div>
                       )}
                       {isSteward && resident.status === 'approved' && (
                         <div className="flex items-center gap-2 shrink-0">

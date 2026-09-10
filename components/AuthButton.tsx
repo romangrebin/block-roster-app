@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { AuthUser } from '@/lib/auth'
 
@@ -15,6 +16,7 @@ type Props = {
 }
 
 export default function AuthButton({ user }: Props) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
@@ -45,6 +47,10 @@ export default function AuthButton({ user }: Props) {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     setOpen(false)
+    // `user` is passed down from the root layout Server Component (reads the session cookie) —
+    // signOut() alone only clears it client-side; without this the button kept showing the old
+    // signed-in state until the next unrelated navigation/refresh happened to re-run the layout.
+    router.refresh()
   }
 
   const inputClass =

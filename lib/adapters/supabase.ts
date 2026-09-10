@@ -53,6 +53,7 @@ type ResidenceRow = {
   id: string
   block_id: string
   label: string
+  nickname: string | null
   shape: unknown | null
   status: ResidenceStatus
   last_confirmed_at: string | null
@@ -137,6 +138,7 @@ function toResidence(row: ResidenceRow): Residence {
     id: row.id,
     blockId: row.block_id,
     label: row.label,
+    nickname: row.nickname,
     shape: row.shape,
     status: row.status,
     lastConfirmedAt: row.last_confirmed_at,
@@ -316,6 +318,7 @@ function createResidenceRepository(client: SupabaseClient): ResidenceRepository 
     async update(id, input) {
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
       if (input.label !== undefined) patch.label = input.label
+      if (input.nickname !== undefined) patch.nickname = input.nickname
       if (input.shape !== undefined) patch.shape = input.shape
       if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder
       const { data, error } = await client.from('residences').update(patch).eq('id', id).select().single()

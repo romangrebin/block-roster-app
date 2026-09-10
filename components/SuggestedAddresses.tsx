@@ -35,6 +35,7 @@ export default function SuggestedAddresses({
   const router = useRouter()
   const [status, setStatus] = useState<Status>('idle')
   const [suggestions, setSuggestions] = useState<SuggestedAddress[]>([])
+  const [truncatedFrom, setTruncatedFrom] = useState<number | null>(null)
   const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set())
   const [submitting, setSubmitting] = useState(false)
 
@@ -42,7 +43,8 @@ export default function SuggestedAddresses({
     setStatus('loading')
     suggestAddressesWithinBoundary(boundary)
       .then((result) => {
-        setSuggestions(result)
+        setSuggestions(result.addresses)
+        setTruncatedFrom(result.truncated ? result.totalFound : null)
         setStatus('loaded')
       })
       .catch(() => setStatus('failed'))
@@ -167,6 +169,12 @@ export default function SuggestedAddresses({
         {visible.length} potential new address{visible.length === 1 ? '' : 'es'} found in your boundary (via
         OpenStreetMap)
       </p>
+      {truncatedFrom !== null && (
+        <p className="text-sm text-amber-700">
+          Showing the first {suggestions.length} of {truncatedFrom} addresses found — that&apos;s a lot for one
+          boundary. Draw a smaller area and search again to see the rest.
+        </p>
+      )}
       {shapedCount > 0 && (
         <p className="text-sm text-muted">
           {shapedCount} of these include a ready-made shape, previewed on the map and drawn automatically on add.
