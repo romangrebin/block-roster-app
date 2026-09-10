@@ -29,14 +29,10 @@ export const BASEMAP_STYLE = {
 
 // Shared between ResidencesOverviewMap's preview layer and SuggestedAddresses' row list, so a
 // suggestion's checked/unchecked color reads the same whether you're looking at the map or the
-// list — deliberately outside the green/gray/amber residence-status palette, since these aren't
-// real residences yet. Checked (about to be added) is bolder than merely suggested.
+// list — deliberately blue, distinct from the green/gray the map uses for real residences,
+// since these aren't real residences yet. Checked (about to be added) is bolder than suggested.
 export const PREVIEW_UNSELECTED = '#93c5fd'
 export const PREVIEW_SELECTED = '#2563eb'
-
-export function centroidOf(feature: Feature<Polygon | MultiPolygon>): [number, number] {
-  return turf.centroid(feature).geometry.coordinates as [number, number]
-}
 
 /** A small buffer around a polygon's bbox — enough room to see its edges without free-roaming past them. */
 export function boundsOf(

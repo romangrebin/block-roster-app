@@ -13,16 +13,10 @@ import type { SuggestionPreview } from '@/lib/overpass'
 import { BASEMAP_STYLE, boundsOf, PREVIEW_SELECTED, PREVIEW_UNSELECTED } from '@/lib/mapStyle'
 import { MAX_TEXT } from '@/lib/validation'
 
-const STATUS_COLOR: Record<Residence['status'], string> = {
-  current: '#16a34a',
-  unreached: '#9ca3af',
-  vacant: '#d97706',
-}
-
-export type ResidenceMapEntry = {
-  residence: Residence
-  residentNames: string[]
-}
+// Green where someone's registered, gray where nobody is — no third "moved out" state; a
+// house someone left reads the same as one nobody ever joined from (Roman's call).
+const OCCUPIED_COLOR = '#16a34a'
+const EMPTY_COLOR = '#9ca3af'
 
 type DrawInstance = {
   changeMode: (mode: string, options?: Record<string, unknown>) => void
@@ -46,20 +40,18 @@ export type EditShapeRequest = {
  * for EditShapeRequest, but keeps the same shape). */
 export type EditShapeCommand = { nonce: number; action: 'save' | 'cancel' }
 
-function toFeatureCollection(entries: ResidenceMapEntry[]): FeatureCollection {
+function toFeatureCollection(residences: Residence[], occupiedIds: Set<string>): FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: entries
-      .filter((e) => e.residence.shape)
-      .map((e) => ({
+    features: residences
+      .filter((r) => r.shape)
+      .map((r) => ({
         type: 'Feature',
-        geometry: (e.residence.shape as Feature<Polygon | MultiPolygon>).geometry,
-        properties: {
-          id: e.residence.id,
-          label: e.residence.nickname || e.residence.label,
-          status: e.residence.status,
-          residents: e.residentNames.join(', '),
-        },
+        geometry: (r.shape as Feature<Polygon | MultiPolygon>).geometry,
+        // Only what the layers actually read: `occupied` drives the fill colour, `id` the
+        // selection filter. Clicking a shape just selects the residence — the detail panel
+        // below the map shows label/residents, so the map carries no text of its own.
+        properties: { id: r.id, occupied: occupiedIds.has(r.id) },
       })),
   }
 }
@@ -87,7 +79,8 @@ function toPreviewFeatureCollection(previewSuggestions: SuggestionPreview[]): Fe
 export type MapMode = 'idle' | 'drawing-new' | 'editing-existing'
 
 export default function ResidencesOverviewMap({
-  entries,
+  residences,
+  occupiedResidenceIds = [],
   boundary,
   previewSuggestions = [],
   isSteward = false,
@@ -99,7 +92,10 @@ export default function ResidencesOverviewMap({
   editShapeCommand = null,
   onModeChange,
 }: {
-  entries: ResidenceMapEntry[]
+  residences: Residence[]
+  /** Ids of residences that have at least one registered resident — the only per-residence
+   *  signal the map shows (green shape vs gray). */
+  occupiedResidenceIds?: string[]
   boundary: Feature<Polygon | MultiPolygon> | null
   /** Shaped address suggestions not yet added, mirrored from SuggestedAddresses — shown as a distinct preview layer. */
   previewSuggestions?: SuggestionPreview[]
@@ -180,7 +176,7 @@ export default function ResidencesOverviewMap({
   useEffect(() => {
     if (!containerRef.current) return
 
-    const featureCollection = toFeatureCollection(entries)
+    const featureCollection = toFeatureCollection(residences, new Set(occupiedResidenceIds))
     // Normally there's a boundary or at least one shaped residence to frame on. The one exception
     // is bootstrapping a boundary-less community's very first shape via a draw/edit request (see
     // ResidencesSection's canShowMap) — nothing to frame yet, so fall back to a neutral world view
@@ -206,7 +202,6 @@ export default function ResidencesOverviewMap({
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left')
     let unmounted = false
-    let popup: maplibregl.Popup | null = null
 
     // No visible controls of its own (displayControlsDefault: false, controls: {}) — drawing is
     // driven entirely by the drawRequest/editShapeRequest props from outside, not Draw's default
@@ -224,13 +219,10 @@ export default function ResidencesOverviewMap({
         source: 'residences',
         paint: {
           'fill-color': [
-            'match',
-            ['get', 'status'],
-            'current',
-            STATUS_COLOR.current,
-            'vacant',
-            STATUS_COLOR.vacant,
-            STATUS_COLOR.unreached,
+            'case',
+            ['get', 'occupied'],
+            OCCUPIED_COLOR,
+            EMPTY_COLOR,
           ],
           'fill-opacity': 0.45,
         },
@@ -241,13 +233,10 @@ export default function ResidencesOverviewMap({
         source: 'residences',
         paint: {
           'line-color': [
-            'match',
-            ['get', 'status'],
-            'current',
-            STATUS_COLOR.current,
-            'vacant',
-            STATUS_COLOR.vacant,
-            STATUS_COLOR.unreached,
+            'case',
+            ['get', 'occupied'],
+            OCCUPIED_COLOR,
+            EMPTY_COLOR,
           ],
           'line-width': 2,
         },
@@ -291,29 +280,11 @@ export default function ResidencesOverviewMap({
       map.on('mouseleave', 'residences-fill', () => {
         map.getCanvas().style.cursor = ''
       })
+      // Clicking a shape just selects the residence — the detail panel below the map (see
+      // ResidencesSection) shows its label and residents, so there's no on-map popup.
       map.on('click', 'residences-fill', (e) => {
-        const props = e.features?.[0]?.properties
-        if (!props) return
-        popup?.remove()
-
-        const container = document.createElement('div')
-        container.className = 'space-y-0.5'
-        const title = document.createElement('p')
-        title.className = 'font-medium'
-        title.textContent = props.label
-        container.appendChild(title)
-        // Status line removed entirely per Roman (first Current/Unreached, then Vacant too) —
-        // the fill color already carries status at a glance on the map itself; the popup doesn't
-        // need to repeat it in text.
-        if (props.residents) {
-          const residents = document.createElement('p')
-          residents.className = 'text-sm'
-          residents.textContent = props.residents
-          container.appendChild(residents)
-        }
-
-        popup = new maplibregl.Popup({ closeButton: true }).setLngLat(e.lngLat).setDOMContent(container).addTo(map)
-        if (typeof props.id === 'string') onSelectResidenceRef.current?.(props.id)
+        const id = e.features?.[0]?.properties?.id
+        if (typeof id === 'string') onSelectResidenceRef.current?.(id)
       })
       map.on('draw.create', (e: DrawEvent) => {
         const feature = e.features[0]
@@ -332,22 +303,21 @@ export default function ResidencesOverviewMap({
       unmounted = true
       mapRef.current = null
       drawRef.current = null
-      popup?.remove()
       map.remove()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Keep an already-open map view in sync when residences are added/edited/moved elsewhere on
-  // the page (router.refresh() re-renders this component with new entries, but the mount effect
-  // above only runs once — without this, a residence added while Map view is showing wouldn't
-  // appear until the whole map got torn down and recreated, which would also reset pan/zoom).
+  // the page (router.refresh() re-renders this component with new residences, but the mount
+  // effect above only runs once — without this, a residence added while Map view is showing
+  // wouldn't appear until the whole map got torn down and recreated, resetting pan/zoom).
   useEffect(() => {
     const map = mapRef.current
     const source = map?.getSource('residences') as maplibregl.GeoJSONSource | undefined
     if (!source) return
-    source.setData(toFeatureCollection(entries))
-  }, [entries])
+    source.setData(toFeatureCollection(residences, new Set(occupiedResidenceIds)))
+  }, [residences, occupiedResidenceIds])
 
   // Same idea for suggestion previews — updates on every checkbox click, not just when
   // residences actually change.

@@ -43,8 +43,6 @@ export type BlockInput = {
   lendingLibraryEnabled?: boolean
 }
 
-export type ResidenceStatus = 'unreached' | 'current' | 'vacant'
-
 export type Residence = {
   id: string
   blockId: string
@@ -56,12 +54,6 @@ export type Residence = {
   // Format depends on the parent block's canvasType: geojson polygon (geo_map), normalized
   // 0-1 image-space polygon (image, not yet designed), or null (none/list-only).
   shape: Feature<Polygon | MultiPolygon> | unknown | null
-  // Fully derived by the application write path — never set directly except at creation
-  // (defaults to 'unreached'). "Stale" isn't a value here; compute it from lastConfirmedAt's
-  // age at read time instead.
-  status: ResidenceStatus
-  lastConfirmedAt: string | null
-  sortOrder: number | null
   createdAt: string
   updatedAt: string | null
 }
@@ -71,7 +63,6 @@ export type ResidenceInput = {
   label: string
   nickname?: string | null
   shape?: Feature<Polygon | MultiPolygon> | unknown
-  sortOrder?: number
 }
 
 export type ResidentStatus = 'pending' | 'approved' | 'moved_out'
@@ -130,14 +121,6 @@ export type Steward = {
   status: StewardStatus
   lastActiveAt: string | null
   createdAt: string
-}
-
-export type ConfirmationLogEntry = {
-  id: string
-  residenceId: string
-  residentId: string | null
-  confirmedBy: string | null // steward id; null = resident self-confirmed
-  confirmedAt: string
 }
 
 /**

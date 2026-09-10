@@ -221,12 +221,19 @@ export default function ResidencesSection({
                 {visibleEntries.map(({ residence, residents }) => {
                   const selected = residence.id === selectedResidenceId
                   const hasResidents = residents.length > 0
+                  const firstNames = residents
+                    .map((r) => r.resident.name.trim().split(/\s+/)[0])
+                    .filter(Boolean)
+                  const namesLabel =
+                    firstNames.length > 2
+                      ? `${firstNames.slice(0, 2).join(', ')} +${firstNames.length - 2}`
+                      : firstNames.join(', ')
                   return (
                     <li
                       key={residence.id}
                       id={residenceRowId(residence.id)}
                       onClick={() => selectResidence(residence.id)}
-                      className={`flex items-center gap-2.5 px-4 py-2.5 cursor-pointer transition-colors ${
+                      className={`@container flex items-center gap-2.5 px-4 py-2.5 cursor-pointer transition-colors ${
                         selected ? 'bg-accent-soft' : 'hover:bg-surface-muted'
                       }`}
                     >
@@ -245,9 +252,17 @@ export default function ResidencesSection({
                         )}
                       </span>
                       {hasResidents && (
-                        <span className="shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium bg-surface-muted text-muted">
-                          {residents.length}
-                        </span>
+                        <>
+                          {/* First names when the row is wide enough for them (container query
+                              on the <li>), the count badge as the fallback when it isn't. The
+                              @sm threshold (24rem) is a one-word tweak. */}
+                          <span className="hidden @sm:block shrink-0 max-w-40 truncate text-sm text-muted">
+                            {namesLabel}
+                          </span>
+                          <span className="@sm:hidden shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium bg-surface-muted text-muted">
+                            {residents.length}
+                          </span>
+                        </>
                       )}
                     </li>
                   )
@@ -408,10 +423,8 @@ export default function ResidencesSection({
           }`}
         >
           <ResidencesOverviewMap
-            entries={entries.map((e) => ({
-              residence: e.residence,
-              residentNames: e.residents.map((r) => r.resident.name),
-            }))}
+            residences={entries.map((e) => e.residence)}
+            occupiedResidenceIds={entries.filter((e) => e.residents.length > 0).map((e) => e.residence.id)}
             boundary={blockBoundary}
             previewSuggestions={previewSuggestions}
             isSteward={isSteward}
@@ -444,30 +457,30 @@ export default function ResidencesSection({
 
   const header = (
     <div className="flex items-center justify-between gap-3 flex-wrap">
-      <h2 className="text-lg font-medium text-ink">Residences</h2>
-      <div className="flex items-center gap-3">
-        {canShowMap && selectedEntry === null && !busyOnMap && (
-          <div className="lg:hidden flex rounded-full border border-border overflow-hidden text-sm">
-            <button
-              onClick={() => setView('list')}
-              className={`px-3 py-1 cursor-pointer transition-colors ${view === 'list' ? 'bg-accent text-white' : 'text-muted hover:bg-surface-muted'}`}
-            >
-              List
-            </button>
-            <button
-              onClick={() => setView('map')}
-              className={`px-3 py-1 cursor-pointer transition-colors ${view === 'map' ? 'bg-accent text-white' : 'text-muted hover:bg-surface-muted'}`}
-            >
-              Map
-            </button>
-          </div>
-        )}
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-lg font-medium text-ink">Residences</h2>
         {showExportLink && (
           <a href={`/api/blocks/${blockId}/export`} className="text-sm text-accent hover:underline">
             Export CSV
           </a>
         )}
       </div>
+      {canShowMap && selectedEntry === null && !busyOnMap && (
+        <div className="lg:hidden flex rounded-full border border-border overflow-hidden text-sm">
+          <button
+            onClick={() => setView('list')}
+            className={`px-3 py-1 cursor-pointer transition-colors ${view === 'list' ? 'bg-accent text-white' : 'text-muted hover:bg-surface-muted'}`}
+          >
+            List
+          </button>
+          <button
+            onClick={() => setView('map')}
+            className={`px-3 py-1 cursor-pointer transition-colors ${view === 'map' ? 'bg-accent text-white' : 'text-muted hover:bg-surface-muted'}`}
+          >
+            Map
+          </button>
+        </div>
+      )}
     </div>
   )
 

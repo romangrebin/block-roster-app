@@ -145,17 +145,12 @@ export async function verifyAndMaybeAutoApprove(
 
 export async function approveResident(residentId: string, stewardId: string): Promise<Resident> {
   const repo = getRepository()
-  const resident = await repo.residents.approve(residentId, stewardId)
-  await repo.residences.setStatus(resident.residenceId, 'current')
-  return resident
+  return repo.residents.approve(residentId, stewardId)
 }
 
 /**
  * approved → moved_out. Resets this resident's block_wide contacts to steward_only — moving out
- * re-locks visibility rather than leaving stale contact info exposed community-wide — then
- * re-derives the residence's status: vacant only if no other resident there is still approved
- * (a residence can hold several residents, e.g. roommates, so one moving out doesn't necessarily
- * vacate it).
+ * re-locks visibility rather than leaving stale contact info exposed community-wide.
  */
 export async function moveResidentOut(residentId: string): Promise<Resident> {
   const repo = getRepository()
@@ -167,10 +162,6 @@ export async function moveResidentOut(residentId: string): Promise<Resident> {
       await repo.contactMethods.setVisibility(contactMethod.id, 'steward_only')
     }
   }
-
-  const siblings = await repo.residents.listByResidence(resident.residenceId)
-  const stillCurrent = siblings.some((r) => r.status === 'approved')
-  await repo.residences.setStatus(resident.residenceId, stillCurrent ? 'current' : 'vacant')
 
   return resident
 }

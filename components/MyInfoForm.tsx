@@ -14,14 +14,19 @@ import CharCount from './CharCount'
  */
 export default function MyInfoForm({
   residentId,
+  name: initialName,
   blurb: initialBlurb,
   contacts,
 }: {
   residentId: string
+  name: string
   blurb: string | null
   contacts: ContactMethod[]
 }) {
   const router = useRouter()
+  const [name, setName] = useState(initialName)
+  const [savingName, setSavingName] = useState(false)
+  const [nameSaved, setNameSaved] = useState(false)
   const [blurb, setBlurb] = useState(initialBlurb ?? '')
   const [savingBlurb, setSavingBlurb] = useState(false)
   const [blurbSaved, setBlurbSaved] = useState(false)
@@ -33,6 +38,27 @@ export default function MyInfoForm({
   const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null)
   const [phoneEditValue, setPhoneEditValue] = useState('')
   const [savingPhoneEdit, setSavingPhoneEdit] = useState(false)
+
+  const handleSaveName = async () => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    setSavingName(true)
+    setError(null)
+    const res = await fetch(`/api/residents/${residentId}/name`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: trimmed }),
+    })
+    const body = await res.json()
+    setSavingName(false)
+    if (!res.ok) {
+      setError(body.error ?? 'Failed to save')
+      return
+    }
+    setNameSaved(true)
+    setTimeout(() => setNameSaved(false), 2000)
+    router.refresh()
+  }
 
   const handleSaveBlurb = async () => {
     setSavingBlurb(true)
@@ -119,6 +145,28 @@ export default function MyInfoForm({
   return (
     <div className="space-y-6 border border-border rounded-2xl bg-surface-muted p-5">
       <h2 className="text-lg font-medium text-ink">Your info</h2>
+
+      <div className="space-y-2">
+        <label className="block text-base font-medium text-ink">
+          Your name <span className="text-muted font-normal">(shown to your neighbors)</span>
+        </label>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={MAX_TEXT.name}
+            className="flex-1 min-w-0 border border-border rounded-xl px-4 py-2.5 text-base bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+          />
+          <button
+            onClick={handleSaveName}
+            disabled={savingName || !name.trim() || name.trim() === initialName}
+            className="bg-accent text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
+          >
+            {savingName ? 'Saving…' : nameSaved ? 'Saved' : 'Save'}
+          </button>
+        </div>
+      </div>
 
       <div className="space-y-2">
         <label className="block text-base font-medium text-ink">

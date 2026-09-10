@@ -7,21 +7,18 @@ import type {
   ResidentRepository,
   ContactMethodRepository,
   StewardRepository,
-  ConfirmationLogRepository,
   ItemRepository,
   BlockRosterRepository,
 } from '../repository'
 import type {
   Block,
   Residence,
-  ResidenceStatus,
   Resident,
   ResidentInput,
   ContactMethod,
   ContactMethodInput,
   Steward,
   StewardStatus,
-  ConfirmationLogEntry,
   Item,
   ItemCategory,
 } from '../types'
@@ -55,9 +52,6 @@ type ResidenceRow = {
   label: string
   nickname: string | null
   shape: unknown | null
-  status: ResidenceStatus
-  last_confirmed_at: string | null
-  sort_order: number | null
   created_at: string
   updated_at: string | null
 }
@@ -96,14 +90,6 @@ type StewardRow = {
   created_at: string
 }
 
-type ConfirmationLogRow = {
-  id: string
-  residence_id: string
-  resident_id: string | null
-  confirmed_by: string | null
-  confirmed_at: string
-}
-
 type ItemRow = {
   id: string
   resident_id: string
@@ -140,9 +126,6 @@ function toResidence(row: ResidenceRow): Residence {
     label: row.label,
     nickname: row.nickname,
     shape: row.shape,
-    status: row.status,
-    lastConfirmedAt: row.last_confirmed_at,
-    sortOrder: row.sort_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -188,15 +171,6 @@ function toSteward(row: StewardRow): Steward {
   }
 }
 
-function toConfirmationLogEntry(row: ConfirmationLogRow): ConfirmationLogEntry {
-  return {
-    id: row.id,
-    residenceId: row.residence_id,
-    residentId: row.resident_id,
-    confirmedBy: row.confirmed_by,
-    confirmedAt: row.confirmed_at,
-  }
-}
 
 function toItem(row: ItemRow): Item {
   return {
@@ -295,7 +269,6 @@ function createResidenceRepository(client: SupabaseClient): ResidenceRepository 
           block_id: input.blockId,
           label: input.label,
           shape: input.shape ?? null,
-          sort_order: input.sortOrder ?? null,
         })
         .select()
         .single()
@@ -311,7 +284,6 @@ function createResidenceRepository(client: SupabaseClient): ResidenceRepository 
         .from('residences')
         .select()
         .eq('block_id', blockId)
-        .order('sort_order', { ascending: true, nullsFirst: false })
         .order('label', { ascending: true })
       if (error) throw new Error(`[supabase adapter] residences.listByBlock: ${error.message}`)
       return (data as ResidenceRow[]).map(toResidence)
@@ -321,18 +293,8 @@ function createResidenceRepository(client: SupabaseClient): ResidenceRepository 
       if (input.label !== undefined) patch.label = input.label
       if (input.nickname !== undefined) patch.nickname = input.nickname
       if (input.shape !== undefined) patch.shape = input.shape
-      if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder
       const { data, error } = await client.from('residences').update(patch).eq('id', id).select().single()
       return toResidence(requireNoError(data as ResidenceRow | null, error, 'residences.update'))
-    },
-    async setStatus(id, status) {
-      const { data, error } = await client
-        .from('residences')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single()
-      return toResidence(requireNoError(data as ResidenceRow | null, error, 'residences.setStatus'))
     },
     async delete(id) {
       const { error } = await client.from('residences').delete().eq('id', id)
@@ -387,6 +349,15 @@ function createResidentRepository(client: SupabaseClient): ResidentRepository {
         .select()
         .single()
       return toResident(requireNoError(data as ResidentRow | null, error, 'residents.moveOut'))
+    },
+    async setName(id, name) {
+      const { data, error } = await client
+        .from('residents')
+        .update({ name, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+      return toResident(requireNoError(data as ResidentRow | null, error, 'residents.setName'))
     },
     async setBlurb(id, blurb) {
       const { data, error } = await client
@@ -524,30 +495,6 @@ function createStewardRepository(client: SupabaseClient): StewardRepository {
   }
 }
 
-function createConfirmationLogRepository(client: SupabaseClient): ConfirmationLogRepository {
-  return {
-    async record(residenceId, residentId, confirmedBy) {
-      const { data, error } = await client
-        .from('confirmation_log')
-        .insert({ residence_id: residenceId, resident_id: residentId, confirmed_by: confirmedBy })
-        .select()
-        .single()
-      return toConfirmationLogEntry(
-        requireNoError(data as ConfirmationLogRow | null, error, 'confirmationLog.record')
-      )
-    },
-    async listByResidence(residenceId) {
-      const { data, error } = await client
-        .from('confirmation_log')
-        .select()
-        .eq('residence_id', residenceId)
-        .order('confirmed_at', { ascending: false })
-      if (error) throw new Error(`[supabase adapter] confirmationLog.listByResidence: ${error.message}`)
-      return (data as ConfirmationLogRow[]).map(toConfirmationLogEntry)
-    },
-  }
-}
-
 function createItemRepository(client: SupabaseClient): ItemRepository {
   return {
     async create(input) {
@@ -619,7 +566,6 @@ export function createSupabaseRepository(client: SupabaseClient): BlockRosterRep
     residents: createResidentRepository(client),
     contactMethods: createContactMethodRepository(client),
     stewards: createStewardRepository(client),
-    confirmationLog: createConfirmationLogRepository(client),
     items: createItemRepository(client),
   }
 }

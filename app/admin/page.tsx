@@ -23,8 +23,7 @@ export default async function AdminPage() {
         repo.residences.listByBlock(block.id),
         repo.stewards.listByBlock(block.id),
       ])
-      const currentCount = residences.filter((r) => r.status === 'current').length
-      return { block, residenceCount: residences.length, currentCount, stewardCount: stewards.length }
+      return { block, residenceCount: residences.length, stewardCount: stewards.length }
     })
   )
 
@@ -35,14 +34,14 @@ export default async function AdminPage() {
         <p className="text-base text-muted">No communities yet.</p>
       ) : (
         <ul className="divide-y divide-border border border-border rounded-2xl bg-surface">
-          {rows.map(({ block, residenceCount, currentCount, stewardCount }) => (
+          {rows.map(({ block, residenceCount, stewardCount }) => (
             <li key={block.id} className="flex items-center justify-between px-5 py-4 gap-4">
               <div>
                 <Link href={`/${block.code}`} className="text-lg font-medium text-ink hover:underline">
                   {block.name}
                 </Link>
                 <p className="text-sm text-muted">
-                  {block.status} · {currentCount} of {residenceCount} residences current ·{' '}
+                  {block.status} · {residenceCount} residence{residenceCount === 1 ? '' : 's'} ·{' '}
                   {stewardCount} steward{stewardCount === 1 ? '' : 's'} · created{' '}
                   {new Date(block.createdAt).toLocaleDateString()}
                 </p>

@@ -57,8 +57,6 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
     residentsByResidence = new Map(directory.map((entry) => [entry.residence.id, entry.residents]))
   }
 
-  const currentCount = residences.filter((r) => r.status === 'current').length
-
   // Reuses the same steward-full/peer-safe resident+contact data already fetched above, keyed by
   // resident instead of residence — items belong to a resident, and this is exactly the same
   // "who's allowed to see whose contact info" split getResidentDirectory already computed, so
@@ -86,9 +84,9 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
     <PageContainer className="space-y-8">
       <div>
         <h1 className="text-3xl font-semibold text-ink">{block.name}</h1>
-        {isSteward && (
+        {isSteward && residences.length > 0 && (
           <p className="text-base text-muted mt-1">
-            {currentCount} of {residences.length} residences current
+            {residences.length} residence{residences.length === 1 ? '' : 's'}
           </p>
         )}
         {block.publicBlurb && (
@@ -137,7 +135,12 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
           }
           myInfo={
             viewerResident ? (
-              <MyInfoForm residentId={viewerResident.id} blurb={viewerResident.blurb} contacts={viewerContacts} />
+              <MyInfoForm
+                residentId={viewerResident.id}
+                name={viewerResident.name}
+                blurb={viewerResident.blurb}
+                contacts={viewerContacts}
+              />
             ) : isSteward ? (
               // A steward isn't automatically a resident too — createFounding just makes a
               // stewards row, no matching residence claimed. Same registration form anyone else

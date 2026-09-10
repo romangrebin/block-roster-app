@@ -20,7 +20,7 @@ const OVERPASS_ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://
 // benefit (a steward adding residences one boundary at a time doesn't need thousands at once).
 // Well above what any real community should ever return; see SuggestedAddresses.tsx for how a
 // truncated result is surfaced.
-export const MAX_SUGGESTED_ADDRESSES = 500
+const MAX_SUGGESTED_ADDRESSES = 500
 
 export type SuggestedAddress = {
   label: string

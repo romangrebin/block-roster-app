@@ -26,16 +26,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Not authorized to export this roster' }, { status: 403 })
   }
 
-  const headers = ['Residence', 'Nickname', 'Residence status', 'Resident', 'Email', 'Phone']
+  const headers = ['Residence', 'Nickname', 'Resident', 'Email', 'Phone']
   const rows: string[][] = []
 
   // Every residence gets at least one row — a residence with no residents comes out as a blank
   // line rather than being absent, so the export doubles as a template a steward can fill in
   // (e.g. after moving to a spreadsheet).
-  const residenceRow = (residence: { label: string; nickname: string | null; status: string }) => [
+  const residenceRow = (residence: { label: string; nickname: string | null }) => [
     residence.label,
     residence.nickname ?? '',
-    residence.status,
   ]
 
   if (isSteward) {

@@ -3,14 +3,12 @@ import type {
   BlockInput,
   Residence,
   ResidenceInput,
-  ResidenceStatus,
   Resident,
   ResidentInput,
   ContactMethod,
   ContactMethodInput,
   Steward,
   StewardStatus,
-  ConfirmationLogEntry,
   Item,
   ItemInput,
 } from './types'
@@ -18,7 +16,8 @@ import type {
 /**
  * One repository interface per entity, implemented by lib/adapters/supabase.ts and selected
  * via lib/db.ts. Deliberately dumb single-entity CRUD — cross-table invariants (creating a
- * block's founding steward, deriving residence status, etc.) live in lib/application.ts.
+ * block's founding steward, re-locking a moved-out resident's contacts, etc.) live in
+ * lib/application.ts.
  */
 
 export interface BlockRepository {
@@ -35,7 +34,6 @@ export interface ResidenceRepository {
   getById(id: string): Promise<Residence | null>
   listByBlock(blockId: string): Promise<Residence[]>
   update(id: string, input: Partial<ResidenceInput>): Promise<Residence>
-  setStatus(id: string, status: ResidenceStatus): Promise<Residence>
   delete(id: string): Promise<void>
 }
 
@@ -45,6 +43,7 @@ export interface ResidentRepository {
   listByResidence(residenceId: string): Promise<Resident[]>
   approve(id: string, stewardId: string): Promise<Resident>
   moveOut(id: string): Promise<Resident>
+  setName(id: string, name: string): Promise<Resident>
   setBlurb(id: string, blurb: string | null): Promise<Resident>
   delete(id: string): Promise<void>
 }
@@ -79,15 +78,6 @@ export interface StewardRepository {
   setStatus(id: string, status: StewardStatus): Promise<Steward>
 }
 
-export interface ConfirmationLogRepository {
-  record(
-    residenceId: string,
-    residentId: string | null,
-    confirmedBy: string | null
-  ): Promise<ConfirmationLogEntry>
-  listByResidence(residenceId: string): Promise<ConfirmationLogEntry[]>
-}
-
 export interface ItemRepository {
   create(input: ItemInput): Promise<Item>
   getById(id: string): Promise<Item | null>
@@ -107,6 +97,5 @@ export type BlockRosterRepository = {
   residents: ResidentRepository
   contactMethods: ContactMethodRepository
   stewards: StewardRepository
-  confirmationLog: ConfirmationLogRepository
   items: ItemRepository
 }

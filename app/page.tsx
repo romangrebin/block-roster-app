@@ -25,7 +25,7 @@ const PRIMARY_BUTTON_CLASS =
   "inline-block bg-accent text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-accent-dark transition-colors shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]";
 
 type BlockRole = "steward" | "resident";
-type BlockEntry = { block: Block; currentCount: number; total: number; role: BlockRole };
+type BlockEntry = { block: Block; total: number; role: BlockRole };
 
 async function loadBlockEntry(
   repo: ReturnType<typeof getRepository>,
@@ -33,8 +33,7 @@ async function loadBlockEntry(
   role: BlockRole
 ): Promise<BlockEntry> {
   const residences = await repo.residences.listByBlock(block.id);
-  const currentCount = residences.filter((r) => r.status === "current").length;
-  return { block, currentCount, total: residences.length, role };
+  return { block, total: residences.length, role };
 }
 
 export default async function Home() {
@@ -72,7 +71,7 @@ export default async function Home() {
         <div className="max-w-xl mx-auto w-full text-left space-y-4">
           <h2 className="text-lg font-medium text-ink">Your communities</h2>
           <ul className="divide-y divide-border border border-border rounded-2xl bg-surface">
-            {blocks.map(({ block, currentCount, total, role }) => (
+            {blocks.map(({ block, total, role }) => (
               <li key={block.id}>
                 <Link
                   href={`/${block.code}`}
@@ -89,7 +88,7 @@ export default async function Home() {
                     </span>
                   </span>
                   <span className="shrink-0 text-base text-muted">
-                    {currentCount} of {total} current
+                    {total} residence{total === 1 ? "" : "s"}
                   </span>
                 </Link>
               </li>
