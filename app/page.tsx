@@ -98,11 +98,10 @@ export default async function Home() {
       )}
 
       <div className="text-center space-y-5 max-w-2xl mx-auto">
-        <h1 className="text-4xl font-semibold text-ink">A community roster that doesn&apos;t go stale.</h1>
+        <h1 className="text-4xl font-semibold text-ink">Know your neighbors.</h1>
         <p className="text-lg text-muted leading-8">
-          Most neighbor lists rot the day the organizer moves away. Our Block anchors on
-          addresses, not people — so when someone moves out, that&apos;s a gap to fill, not data
-          that quietly disappears.
+          Built by neighbors, for neighbors. Social tech to deepen human connection, not
+          replace it. A growing set of simple tools for your block.
         </p>
         <div className="flex flex-col items-center gap-2 pt-2">
           <EnterCodeBox />
