@@ -311,7 +311,7 @@ function createResidentRepository(client: SupabaseClient): ResidentRepository {
     async create(input: ResidentInput) {
       const { data, error } = await client
         .from('residents')
-        .insert({ residence_id: input.residenceId, name: input.name })
+        .insert({ residence_id: input.residenceId, name: input.name, blurb: input.blurb ?? null })
         .select()
         .single()
       return toResident(requireNoError(data as ResidentRow | null, error, 'residents.create'))

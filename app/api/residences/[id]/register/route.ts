@@ -18,9 +18,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const body = await request.json()
 
   const name = cappedText(body.name, MAX_TEXT.name)
+  const blurb = cappedText(body.blurb, MAX_TEXT.blurb)
   const email = cappedText(body.email, MAX_TEXT.email)
   const phone = cappedText(body.phone, MAX_TEXT.phone)
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  if (!blurb) return NextResponse.json({ error: 'Tell your neighbors a bit about yourself' }, { status: 400 })
   if (!email || !email.includes('@')) {
     return NextResponse.json({ error: 'A valid email is required' }, { status: 400 })
   }
@@ -29,6 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { resident, contactMethod } = await registerResident(
       residenceId,
       name,
+      blurb,
       { type: 'email', value: email, visibility: parseVisibility(body.emailVisibility) },
       phone ? { value: phone, visibility: parseVisibility(body.phoneVisibility) } : undefined
     )

@@ -5,6 +5,7 @@ import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import ResidenceMapPicker from './ResidenceMapPicker'
 import { MAX_TEXT } from '@/lib/validation'
+import CharCount from './CharCount'
 import type { CanvasType, ContactVisibility } from '@/lib/types'
 
 const visibilitySelectClass =
@@ -34,9 +35,14 @@ type ResidenceOption = { id: string; label: string; nickname: string | null; sha
 /**
  * Resident self-registration: pick a residence (by tapping the map, if any residence has a
  * drawn shape — the plain-list dropdown is always shown too, as the guaranteed fallback for
- * residences without one yet), give a name + email (+ optional phone), confirm by tapping the
- * emailed link — app/[code]/complete is where that link lands and finishes it. Phone is
- * unverified/informational only — no phone-OTP path exists yet.
+ * residences without one yet), give a name + blurb + email (+ optional phone), confirm by
+ * tapping the emailed link — app/[code]/complete is where that link lands and finishes it. Phone
+ * is unverified/informational only — no phone-OTP path exists yet.
+ *
+ * The blurb is required here (unlike editing it later via My Info, which is optional) — besides
+ * being the "something about you" neighbors see, it's the one piece of free text a steward has
+ * to help judge a pending registration before approving it (see resident.blurb's unconditional
+ * display in ResidencesSection's resident cards, right next to Approve).
  *
  * If the visitor is already signed in, `signedInEmail` skips asking for an email at all — a
  * prior magic link already proved they control that inbox, so there's nothing left for another
@@ -57,8 +63,11 @@ export default function ResidentIntakeForm({
 }) {
   const [sent, setSent] = useState(false)
   const [registered, setRegistered] = useState<{ autoApproved: boolean } | null>(null)
-  const [residenceId, setResidenceId] = useState(residences[0]?.id ?? '')
+  // Deliberately no default residence — a pre-filled dropdown looks like an already-made choice,
+  // and picking the wrong house here is exactly the mistake this form shouldn't make easy.
+  const [residenceId, setResidenceId] = useState('')
   const [name, setName] = useState('')
+  const [blurb, setBlurb] = useState('')
   const [email, setEmail] = useState(signedInEmail ?? '')
   const [emailVisibility, setEmailVisibility] = useState<ContactVisibility>('block_wide')
   const [phone, setPhone] = useState('')
@@ -70,7 +79,7 @@ export default function ResidentIntakeForm({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!residenceId || !name.trim() || !email.trim()) return
+    if (!residenceId || !name.trim() || !blurb.trim() || !email.trim()) return
     setSubmitting(true)
     setError(null)
 
@@ -79,6 +88,7 @@ export default function ResidentIntakeForm({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: name.trim(),
+        blurb: blurb.trim(),
         email: email.trim(),
         emailVisibility,
         phone: phone.trim(),
@@ -165,6 +175,9 @@ export default function ResidentIntakeForm({
           required
           className={inputClass}
         >
+          <option value="" disabled>
+            Select your residence…
+          </option>
           {residences.map((r) => (
             <option key={r.id} value={r.id}>
               {r.nickname ? `${r.nickname} (${r.label})` : r.label}
@@ -185,6 +198,21 @@ export default function ResidentIntakeForm({
         />
       </div>
       <div>
+        <label className="block text-base font-medium text-ink mb-1.5">
+          About you <span className="text-muted font-normal">(shown to your neighbors)</span>
+        </label>
+        <textarea
+          value={blurb}
+          onChange={(e) => setBlurb(e.target.value)}
+          maxLength={MAX_TEXT.blurb}
+          rows={2}
+          placeholder="Something simple your neighbors could know about you, something you love about where you live, or someplace you love near your home"
+          required
+          className={inputClass}
+        />
+        <CharCount value={blurb} max={MAX_TEXT.blurb} />
+      </div>
+      <div>
         <div className="flex items-center justify-between gap-3 mb-1.5">
           <label className="block text-base font-medium text-ink">Email</label>
           <VisibilitySelect value={emailVisibility} onChange={setEmailVisibility} />
@@ -198,15 +226,21 @@ export default function ResidentIntakeForm({
             Registering as <strong>{signedInEmail}</strong>
           </p>
         ) : (
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            maxLength={MAX_TEXT.email}
-            placeholder="you@example.com"
-            required
-            className={inputClass}
-          />
+          <>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={MAX_TEXT.email}
+              placeholder="you@example.com"
+              required
+              className={inputClass}
+            />
+            <p className="text-sm text-muted mt-1.5">
+              Confirms it&apos;s really you and lets you sign back in later — visible to your
+              neighbors by default, or switch it to steward only above.
+            </p>
+          </>
         )}
       </div>
       <div>
@@ -228,7 +262,7 @@ export default function ResidentIntakeForm({
       {error && <p className="text-base text-red-600">{error}</p>}
       <button
         type="submit"
-        disabled={!residenceId || !name.trim() || !email.trim() || submitting}
+        disabled={!residenceId || !name.trim() || !blurb.trim() || !email.trim() || submitting}
         className="w-full bg-accent text-white py-3 rounded-full text-base font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]"
       >
         {submitting ? 'Sending link…' : 'Register'}

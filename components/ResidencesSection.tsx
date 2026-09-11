@@ -222,6 +222,10 @@ export default function ResidencesSection({
                 {visibleEntries.map(({ residence, residents }) => {
                   const selected = residence.id === selectedResidenceId
                   const hasResidents = residents.length > 0
+                  // Steward-only signal — residence.stewardNotes is already redacted to null for
+                  // anyone else (see app/[code]/page.tsx), so this can't leak that private notes
+                  // exist to a resident; the isSteward check here is just defense in depth.
+                  const hasStewardNotes = isSteward && !hasResidents && !!residence.stewardNotes
                   const firstNames = residents
                     .map((r) => r.resident.name.trim().split(/\s+/)[0])
                     .filter(Boolean)
@@ -238,12 +242,20 @@ export default function ResidencesSection({
                         selected ? 'bg-accent-soft' : 'hover:bg-surface-muted'
                       }`}
                     >
-                      {/* Green = someone's registered here, hollow = nobody yet (the "gap" the
-                          roster is meant to close). */}
+                      {/* Green = someone's registered here. Amber, steward-only = nobody's
+                          registered but there are private notes on file, so it's not really a
+                          blank gap. Hollow = genuinely nothing yet (the "gap" the roster is meant
+                          to close). */}
                       <span
-                        title={hasResidents ? `${residents.length} registered` : 'No one registered yet'}
+                        title={
+                          hasResidents
+                            ? `${residents.length} registered`
+                            : hasStewardNotes
+                              ? 'No residents registered — private notes on file'
+                              : 'No one registered yet'
+                        }
                         className={`w-2 h-2 rounded-full shrink-0 ${
-                          hasResidents ? 'bg-green-500' : 'border border-border'
+                          hasResidents ? 'bg-green-500' : hasStewardNotes ? 'bg-amber-500' : 'border border-border'
                         }`}
                       />
                       <span className="flex-1 min-w-0 text-base text-ink break-words">

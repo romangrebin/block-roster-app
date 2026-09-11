@@ -93,6 +93,7 @@ export type Resident = {
 export type ResidentInput = {
   residenceId: string
   name: string
+  blurb?: string | null
 }
 
 export type ContactMethodType = 'phone' | 'email'

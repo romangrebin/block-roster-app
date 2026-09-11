@@ -73,10 +73,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const csv = toCsv(headers, rows)
+  // Date in the filename (not just the download's mtime, which most browsers don't surface) so
+  // whoever ends up with the file later can tell how fresh it is at a glance.
+  const today = new Date().toISOString().slice(0, 10)
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${block.code}-roster.csv"`,
+      'Content-Disposition': `attachment; filename="${block.code}-roster-${today}.csv"`,
     },
   })
 }
