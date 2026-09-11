@@ -1,20 +1,20 @@
 # Our Block
 
-A tool for neighborhood stewards to build and maintain an accurate, **resident-owned** contact
-roster for their block or building. Not a communication tool — this is about *persistence*:
+A tool for neighborhood stewards to build and maintain an accurate, **resident-owned** directory
+for their block or building. Not a communication tool — this is about *persistence*:
 knowing who lives here, and still knowing it in five years.
 
-The roster anchors on **residences**, not people. People churn; a residence is fixed. When
-someone moves out, that's a gap to fill on the map — not a record that quietly disappears.
+The directory anchors on **residences**, not people. People churn; a residence is fixed — that's
+what keeps it from going stale when whoever's running it moves away.
 
 ## How it works
 
 1. **A steward sets up the community** — draws the boundary, lists the addresses (by hand or
-   from OpenStreetMap). Day one is a complete-but-empty gap map.
+   from OpenStreetMap). Day one starts with every address in place, no residents yet.
 2. **Neighbors join with a code, not a public link.** Pick your residence, verify your email.
    The code (`/<code>`, e.g. `curious-otter-42`) isn't listed anywhere.
-3. **A steward approves you**, and then it's your roster too — see your neighbors, read what your
-   steward posted, export the whole thing anytime.
+3. **A steward approves you**, and then it's your community too — see your neighbors, read what
+   your steward posted, export anytime.
 
 Optional: a per-community **Lending Library** (tools, books, games) a steward can switch on.
 

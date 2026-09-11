@@ -16,7 +16,7 @@ const HOW_IT_WORKS = [
     body: "Pick your address, verify your email — done in under a minute. The code isn't listed anywhere.",
   },
   {
-    title: "A steward approves you, then it's your roster too",
+    title: "A steward approves you, then it's your community too",
     body: "See your neighbors, read what your steward posted, export anytime.",
   },
 ];

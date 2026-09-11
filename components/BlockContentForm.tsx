@@ -155,7 +155,7 @@ export default function BlockContentForm({
           onChange={(e) => setResidentExportEnabled(e.target.checked)}
           className="w-4 h-4 accent-accent cursor-pointer"
         />
-        <span className="text-base text-ink">Let residents export the roster themselves (CSV)</span>
+        <span className="text-base text-ink">Let residents export the directory themselves (CSV)</span>
       </label>
       <label className="flex items-center gap-2.5 cursor-pointer">
         <input

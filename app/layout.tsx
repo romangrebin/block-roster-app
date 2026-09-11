@@ -18,7 +18,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "Our Block",
-  description: "A resident-owned roster, directory, and lending library for your block or community.",
+  description: "A resident-owned directory, shared notes, and lending library for your block or community.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

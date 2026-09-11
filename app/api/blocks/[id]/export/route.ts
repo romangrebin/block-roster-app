@@ -5,7 +5,7 @@ import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory } f
 import { toCsv } from '@/lib/csv'
 
 /**
- * CSV of the roster — "the data is never hostage" (product-brief.md). A steward always gets the
+ * CSV of the directory — "the data is never hostage" (product-brief.md). A steward always gets the
  * full export (every resident, every contact, regardless of status/visibility); an approved
  * resident gets the same peer-safe view as the directory on /<code> (approved residents only,
  * block_wide contacts only), and only if the steward hasn't turned that off
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const isSteward = (await resolveActiveSteward(blockId, user.id)) !== null
   const isApprovedResident = isSteward ? false : (await resolveApprovedResident(blockId, user.id)) !== null
   if (!isSteward && !(isApprovedResident && block.residentExportEnabled)) {
-    return NextResponse.json({ error: 'Not authorized to export this roster' }, { status: 403 })
+    return NextResponse.json({ error: 'Not authorized to export this directory' }, { status: 403 })
   }
 
   const headers = ['Residence', 'Nickname', 'Resident', 'Email', 'Phone']
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${block.code}-roster-${today}.csv"`,
+      'Content-Disposition': `attachment; filename="${block.code}-directory-${today}.csv"`,
     },
   })
 }
