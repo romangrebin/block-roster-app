@@ -17,7 +17,7 @@ const HOW_IT_WORKS = [
   },
   {
     title: "A steward approves you, then it's your roster too",
-    body: "See who's reached and who's missing, read what your steward posted, export anytime.",
+    body: "See your neighbors, read what your steward posted, export anytime.",
   },
 ];
 
@@ -100,7 +100,7 @@ export default async function Home() {
       <div className="text-center space-y-5 max-w-2xl mx-auto">
         <h1 className="text-4xl font-semibold text-ink">A community roster that doesn&apos;t go stale.</h1>
         <p className="text-lg text-muted leading-8">
-          Most neighbor lists rot the day the organizer moves away. Block Roster anchors on
+          Most neighbor lists rot the day the organizer moves away. Our Block anchors on
           addresses, not people — so when someone moves out, that&apos;s a gap to fill, not data
           that quietly disappears.
         </p>

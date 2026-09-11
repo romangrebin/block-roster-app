@@ -1,4 +1,4 @@
-# Block Roster
+# Our Block
 
 A tool for neighborhood stewards to build and maintain an accurate, **resident-owned** contact
 roster for their block or building. Not a communication tool — this is about *persistence*:
@@ -13,7 +13,7 @@ someone moves out, that's a gap to fill on the map — not a record that quietly
    from OpenStreetMap). Day one is a complete-but-empty gap map.
 2. **Neighbors join with a code, not a public link.** Pick your residence, verify your email.
    The code (`/<code>`, e.g. `curious-otter-42`) isn't listed anywhere.
-3. **A steward approves you**, and then it's your roster too — see who's reached, read what your
+3. **A steward approves you**, and then it's your roster too — see your neighbors, read what your
    steward posted, export the whole thing anytime.
 
 Optional: a per-community **Lending Library** (tools, books, games) a steward can switch on.
