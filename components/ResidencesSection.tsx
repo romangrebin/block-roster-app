@@ -10,6 +10,7 @@ import MoveResidentOutButton from './MoveResidentOutButton'
 import RemovePendingResidentButton from './RemovePendingResidentButton'
 import ResidenceControls from './ResidenceControls'
 import ResidenceNicknameEditor from './ResidenceNicknameEditor'
+import ResidenceStewardNotes from './ResidenceStewardNotes'
 import ResidencesOverviewMap, { type EditShapeRequest, type EditShapeCommand, type MapMode } from './ResidencesOverviewMap'
 
 type ResidentRow = { resident: Resident; contacts: ContactMethod[] }
@@ -397,6 +398,8 @@ export default function ResidencesSection({
             <ul className="space-y-2">{residents.map(renderResidentCard)}</ul>
           )}
         </div>
+
+        {isSteward && <ResidenceStewardNotes residenceId={residence.id} notes={residence.stewardNotes} />}
       </div>
     )
   }

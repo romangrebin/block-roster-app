@@ -54,6 +54,14 @@ export type Residence = {
   // Format depends on the parent block's canvasType: geojson polygon (geo_map), normalized
   // 0-1 image-space polygon (image, not yet designed), or null (none/list-only).
   shape: Feature<Polygon | MultiPolygon> | unknown | null
+  // Steward-only scratch space ("4 people, 1 vegan, dog named Fido") — never shown to
+  // residents, not even an approved one of this exact residence. Stricter than nickname/blurb,
+  // which residents can see or set themselves. Callers building a page for a non-steward viewer
+  // MUST null this out before the Residence reaches any client component — see
+  // app/[code]/page.tsx's `redactForViewer`. It's plain app-layer access control, same as every
+  // other visibility rule here (see notes/minimal-schema-proposal.md's "Data access" section);
+  // nothing enforces it at the database row level.
+  stewardNotes: string | null
   createdAt: string
   updatedAt: string | null
 }
@@ -63,6 +71,7 @@ export type ResidenceInput = {
   label: string
   nickname?: string | null
   shape?: Feature<Polygon | MultiPolygon> | unknown
+  stewardNotes?: string | null
 }
 
 export type ResidentStatus = 'pending' | 'approved' | 'moved_out'

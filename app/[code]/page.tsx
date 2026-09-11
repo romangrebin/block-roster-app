@@ -32,6 +32,10 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
 
   const residences = await repo.residences.listByBlock(block.id)
   const joinOptions = residences.map((r) => ({ id: r.id, label: r.label, nickname: r.nickname, shape: r.shape }))
+  // stewardNotes is steward-eyes-only — strip it before a residence reaches any client prop for
+  // a non-steward viewer. Not just a UI gate: this keeps it out of the page's RSC payload
+  // entirely, so it can't be found via view-source either.
+  const residencesForViewer = isSteward ? residences : residences.map((r) => ({ ...r, stewardNotes: null }))
 
   // Stewards see every resident (pending included) with full contact info and Approve/
   // promote/move-out controls; approved residents see the peer-safe view instead —
@@ -111,7 +115,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 canvasType={block.canvasType}
                 entries={
                   residentsByResidence
-                    ? residences.map((residence) => ({
+                    ? residencesForViewer.map((residence) => ({
                         residence,
                         residents: residentsByResidence!.get(residence.id) ?? [],
                       }))

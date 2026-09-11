@@ -19,6 +19,7 @@ export const MAX_TEXT = {
   blurb: 2000,
   publicBlurb: 2000,
   privateNotes: 5000,
+  stewardNotes: 2000,
   itemName: 120,
   itemDescription: 1000,
 } as const

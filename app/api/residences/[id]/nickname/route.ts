@@ -41,7 +41,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const updated = await repo.residences.update(residenceId, { nickname })
-    return NextResponse.json({ residence: updated })
+    // stewardNotes is steward-eyes-only — this route also allows an approved resident (not a
+    // steward) through, so strip it before it goes back over the wire to them.
+    const responseResidence = steward ? updated : { ...updated, stewardNotes: null }
+    return NextResponse.json({ residence: responseResidence })
   } catch (err) {
     return NextResponse.json({ error: clientErrorMessage(err, 'Failed to update nickname') }, { status: 400 })
   }

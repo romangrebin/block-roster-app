@@ -52,6 +52,7 @@ type ResidenceRow = {
   label: string
   nickname: string | null
   shape: unknown | null
+  steward_notes: string | null
   created_at: string
   updated_at: string | null
 }
@@ -126,6 +127,7 @@ function toResidence(row: ResidenceRow): Residence {
     label: row.label,
     nickname: row.nickname,
     shape: row.shape,
+    stewardNotes: row.steward_notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -293,6 +295,7 @@ function createResidenceRepository(client: SupabaseClient): ResidenceRepository 
       if (input.label !== undefined) patch.label = input.label
       if (input.nickname !== undefined) patch.nickname = input.nickname
       if (input.shape !== undefined) patch.shape = input.shape
+      if (input.stewardNotes !== undefined) patch.steward_notes = input.stewardNotes
       const { data, error } = await client.from('residences').update(patch).eq('id', id).select().single()
       return toResidence(requireNoError(data as ResidenceRow | null, error, 'residences.update'))
     },

@@ -7,7 +7,9 @@ import { cappedText, MAX_TEXT } from '@/lib/validation'
 import { clientErrorMessage } from '@/lib/apiError'
 import type { ResidenceInput } from '@/lib/types'
 
-/** Steward-only: rename a residence or set its map shape (see components/DrawableMap.tsx). */
+/** Steward-only: rename a residence, set its map shape (see components/DrawableMap.tsx), or
+ *  edit its private steward notes — this route's steward-only gate, with no resident carve-out
+ *  at all, is exactly the access level stewardNotes needs. */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: residenceId } = await params
   const user = await getUser(request)
@@ -34,6 +36,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const validation = validatePolygonGeometry(body.shape, MAX_PARCEL_AREA_KM2)
     if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 })
     patch.shape = body.shape
+  }
+  if (typeof body.stewardNotes === 'string') {
+    patch.stewardNotes = cappedText(body.stewardNotes, MAX_TEXT.stewardNotes) || null
   }
 
   try {
