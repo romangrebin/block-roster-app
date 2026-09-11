@@ -1,31 +1,26 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useConfirmAction } from './useConfirmAction'
 
 export default function AdminDeleteBlockButton({ blockId, blockName }: { blockId: string; blockName: string }) {
-  const router = useRouter()
-  const [deleting, setDeleting] = useState(false)
+  const { submitting, error, run } = useConfirmAction(`/api/admin/blocks/${blockId}`, 'DELETE')
 
-  const handleDelete = async () => {
-    const confirmed = confirm(
+  const handleDelete = () =>
+    run(
+      'Failed to delete',
       `Delete "${blockName}"? This removes all its residences, residents, and stewards. This cannot be undone.`
     )
-    if (!confirmed) return
-
-    setDeleting(true)
-    const res = await fetch(`/api/admin/blocks/${blockId}`, { method: 'DELETE' })
-    setDeleting(false)
-    if (res.ok) router.refresh()
-  }
 
   return (
-    <button
-      onClick={handleDelete}
-      disabled={deleting}
-      className="shrink-0 text-sm px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-40 cursor-pointer font-medium"
-    >
-      {deleting ? 'Deleting…' : 'Delete'}
-    </button>
+    <div className="flex items-center gap-2 shrink-0">
+      <button
+        onClick={handleDelete}
+        disabled={submitting}
+        className="text-sm px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-40 cursor-pointer font-medium"
+      >
+        {submitting ? 'Deleting…' : 'Delete'}
+      </button>
+      {error && <span className="text-sm text-red-600">{error}</span>}
+    </div>
   )
 }

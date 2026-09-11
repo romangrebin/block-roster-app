@@ -1,28 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useConfirmAction } from './useConfirmAction'
 
 export default function PromoteToStewardButton({ residentId, residentName }: { residentId: string; residentName: string }) {
-  const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { submitting, error, run } = useConfirmAction(`/api/residents/${residentId}/promote`, 'POST')
 
-  const handlePromote = async () => {
-    const confirmed = confirm(`Make ${residentName} a steward? They'll get full access to manage this community.`)
-    if (!confirmed) return
-
-    setSubmitting(true)
-    setError(null)
-    const res = await fetch(`/api/residents/${residentId}/promote`, { method: 'POST' })
-    const body = await res.json()
-    setSubmitting(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to promote')
-      return
-    }
-    router.refresh()
-  }
+  const handlePromote = () =>
+    run('Failed to promote', `Make ${residentName} a steward? They'll get full access to manage this community.`)
 
   return (
     <div className="flex items-center gap-2">

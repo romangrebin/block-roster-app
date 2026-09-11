@@ -33,6 +33,11 @@ export function cappedText(raw: unknown, max: number): string {
   return typeof raw === 'string' ? raw.trim().slice(0, max) : ''
 }
 
+/** Coerces untrusted JSON to a valid ContactVisibility, defaulting to block_wide when absent or invalid. */
+export function parseVisibility(value: unknown): 'steward_only' | 'block_wide' {
+  return value === 'steward_only' ? 'steward_only' : 'block_wide'
+}
+
 /** Minimal HTML-escaping for the handful of user-supplied values that end up in notification
  *  email bodies (see lib/application.ts). Not for rendering — React already escapes JSX. */
 export function escapeHtml(value: string): string {

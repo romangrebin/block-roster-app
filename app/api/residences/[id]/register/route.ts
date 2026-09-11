@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { registerResident, verifyAndMaybeAutoApprove } from '@/lib/application'
-import { cappedText, MAX_TEXT } from '@/lib/validation'
-import type { ContactVisibility } from '@/lib/types'
-
-function parseVisibility(value: unknown): ContactVisibility {
-  return value === 'steward_only' ? 'steward_only' : 'block_wide'
-}
+import { cappedText, MAX_TEXT, parseVisibility } from '@/lib/validation'
 
 // No signed-in session required — this is how a resident gets their first one. The contact
 // method created here normally stays unverified until they tap the confirmation link sent to

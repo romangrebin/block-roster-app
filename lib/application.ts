@@ -6,10 +6,7 @@ import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Re
 
 /**
  * Cross-table invariants that no single repository method can enforce alone (see
- * notes/minimal-schema-proposal.md's "Data access" section). confirmResidentPresence (the
- * annual "still here?" reconfirmation cycle) is designed there but not implemented — Roman's
- * call 2026-09-08, a steward will notice and record move-outs manually for now rather than
- * building an automated nudge before there's a real pilot to learn from.
+ * notes/minimal-schema-proposal.md's "Data access" section).
  */
 
 export async function createBlock(input: BlockInput, founderUserId: string): Promise<Block> {
@@ -196,6 +193,49 @@ export async function resolveActiveSteward(blockId: string, userId: string): Pro
   const repo = getRepository()
   const stewards = await repo.stewards.listByBlock(blockId)
   return stewards.find((s) => s.userId === userId && s.status === 'active') ?? null
+}
+
+export type StewardForResidentResult =
+  | { error: string; status: number }
+  | { resident: Resident; residence: Residence; steward: Steward }
+
+/**
+ * Loads a resident and confirms the caller is an active steward of that resident's community —
+ * the auth chain shared by every steward-only action on a resident (approve, move out, promote,
+ * remove). Returns a ready-to-respond `{ error, status }` on the first failure, or the resolved
+ * rows on success.
+ */
+export async function resolveStewardForResident(residentId: string, userId: string): Promise<StewardForResidentResult> {
+  const repo = getRepository()
+  const resident = await repo.residents.getById(residentId)
+  if (!resident) return { error: 'Resident not found', status: 404 }
+
+  const residence = await repo.residences.getById(resident.residenceId)
+  if (!residence) return { error: 'Residence not found', status: 404 }
+
+  const steward = await resolveActiveSteward(residence.blockId, userId)
+  if (!steward) return { error: 'Not a steward of this community', status: 403 }
+
+  return { resident, residence, steward }
+}
+
+export type OwnResidentAuthResult = { error: string; status: number } | { contacts: ContactMethod[] }
+
+/**
+ * Confirms the caller owns a resident record — i.e. one of the resident's contact methods was
+ * verified under their own user id — the auth check shared by every self-service edit a resident
+ * makes to their own record (name, blurb, phone).
+ */
+export async function authorizeOwnResident(residentId: string, userId: string): Promise<OwnResidentAuthResult> {
+  const repo = getRepository()
+  const resident = await repo.residents.getById(residentId)
+  if (!resident) return { error: 'Resident not found', status: 404 }
+
+  const contacts = await repo.contactMethods.listByResident(residentId)
+  const owns = contacts.some((c) => c.userId === userId)
+  if (!owns) return { error: 'Not authorized', status: 403 }
+
+  return { contacts }
 }
 
 /**

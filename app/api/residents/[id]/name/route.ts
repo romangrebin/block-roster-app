@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
+import { authorizeOwnResident } from '@/lib/application'
 import { cappedText, MAX_TEXT } from '@/lib/validation'
 import { clientErrorMessage } from '@/lib/apiError'
 
@@ -12,19 +13,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const user = await getUser(request)
   if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
 
-  const repo = getRepository()
-  const resident = await repo.residents.getById(residentId)
-  if (!resident) return NextResponse.json({ error: 'Resident not found' }, { status: 404 })
-
-  const contacts = await repo.contactMethods.listByResident(residentId)
-  const owns = contacts.some((c) => c.userId === user.id)
-  if (!owns) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  const auth = await authorizeOwnResident(residentId, user.id)
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const body = await request.json()
   const name = cappedText(body.name, MAX_TEXT.name)
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   try {
+    const repo = getRepository()
     const updated = await repo.residents.setName(residentId, name)
     return NextResponse.json({ resident: updated })
   } catch (err) {

@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useConfirmAction } from './useConfirmAction'
 
 /** Removes an abandoned or mistaken pending registration — the "awaiting verification"/
  * "awaiting approval" case had no way to clean up before this. */
@@ -12,25 +11,10 @@ export default function RemovePendingResidentButton({
   residentId: string
   residentName: string
 }) {
-  const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { submitting, error, run } = useConfirmAction(`/api/residents/${residentId}`, 'DELETE')
 
-  const handleRemove = async () => {
-    const confirmed = confirm(`Remove ${residentName}'s pending registration? This cannot be undone.`)
-    if (!confirmed) return
-
-    setSubmitting(true)
-    setError(null)
-    const res = await fetch(`/api/residents/${residentId}`, { method: 'DELETE' })
-    setSubmitting(false)
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to remove')
-      return
-    }
-    router.refresh()
-  }
+  const handleRemove = () =>
+    run('Failed to remove', `Remove ${residentName}'s pending registration? This cannot be undone.`)
 
   return (
     <div className="flex items-center gap-2">

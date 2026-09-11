@@ -1,30 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useConfirmAction } from './useConfirmAction'
 
 export default function MoveResidentOutButton({ residentId, residentName }: { residentId: string; residentName: string }) {
-  const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { submitting, error, run } = useConfirmAction(`/api/residents/${residentId}/move-out`, 'POST')
 
-  const handleMoveOut = async () => {
-    const confirmed = confirm(
+  const handleMoveOut = () =>
+    run(
+      'Failed to update',
       `Mark ${residentName} as moved out? Their community-wide contact info will be hidden again — a steward can still see it.`
     )
-    if (!confirmed) return
-
-    setSubmitting(true)
-    setError(null)
-    const res = await fetch(`/api/residents/${residentId}/move-out`, { method: 'POST' })
-    const body = await res.json()
-    setSubmitting(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to update')
-      return
-    }
-    router.refresh()
-  }
 
   return (
     <div className="flex items-center gap-2">
