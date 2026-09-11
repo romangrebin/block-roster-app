@@ -25,7 +25,7 @@ function VisibilitySelect({
       className={visibilitySelectClass}
     >
       <option value="block_wide">Visible to neighbors</option>
-      <option value="steward_only">Steward only</option>
+      <option value="steward_only">Visible to steward only</option>
     </select>
   )
 }

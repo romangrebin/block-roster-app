@@ -250,7 +250,7 @@ export default function MyInfoForm({
                     className="text-sm border border-border rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="block_wide">Visible to neighbors</option>
-                    <option value="steward_only">Steward only</option>
+                    <option value="steward_only">Visible to steward only</option>
                   </select>
                 </div>
               </li>
@@ -275,7 +275,7 @@ export default function MyInfoForm({
               className="text-sm border border-border rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="block_wide">Visible to neighbors</option>
-              <option value="steward_only">Steward only</option>
+              <option value="steward_only">Visible to steward only</option>
             </select>
             <button
               onClick={handleAddPhone}
