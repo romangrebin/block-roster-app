@@ -387,7 +387,7 @@ export default function ResidencesSection({
         {canEditNickname && (
           <div className="flex items-center gap-1.5 text-sm">
             <span className="text-muted">Nickname:</span>
-            <ResidenceNicknameEditor residenceId={residence.id} nickname={residence.nickname} />
+            <ResidenceNicknameEditor key={residence.id} residenceId={residence.id} nickname={residence.nickname} />
           </div>
         )}
 
@@ -399,7 +399,9 @@ export default function ResidencesSection({
           )}
         </div>
 
-        {isSteward && <ResidenceStewardNotes residenceId={residence.id} notes={residence.stewardNotes} />}
+        {isSteward && (
+          <ResidenceStewardNotes key={residence.id} residenceId={residence.id} notes={residence.stewardNotes} />
+        )}
       </div>
     )
   }
