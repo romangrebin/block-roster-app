@@ -232,6 +232,12 @@ function createBlockRepository(client: SupabaseClient): BlockRepository {
       if (error) throw new Error(`[supabase adapter] blocks.getByCode: ${error.message}`)
       return data ? toBlock(data as BlockRow) : null
     },
+    async listByIds(ids) {
+      if (ids.length === 0) return []
+      const { data, error } = await client.from('blocks').select().in('id', ids)
+      if (error) throw new Error(`[supabase adapter] blocks.listByIds: ${error.message}`)
+      return (data as BlockRow[]).map(toBlock)
+    },
     async listAll() {
       const { data, error } = await client.from('blocks').select().order('created_at', { ascending: false })
       if (error) throw new Error(`[supabase adapter] blocks.listAll: ${error.message}`)
@@ -281,6 +287,12 @@ function createResidenceRepository(client: SupabaseClient): ResidenceRepository 
       if (error) throw new Error(`[supabase adapter] residences.getById: ${error.message}`)
       return data ? toResidence(data as ResidenceRow) : null
     },
+    async listByIds(ids) {
+      if (ids.length === 0) return []
+      const { data, error } = await client.from('residences').select().in('id', ids)
+      if (error) throw new Error(`[supabase adapter] residences.listByIds: ${error.message}`)
+      return (data as ResidenceRow[]).map(toResidence)
+    },
     async listByBlock(blockId) {
       const { data, error } = await client
         .from('residences')
@@ -321,6 +333,12 @@ function createResidentRepository(client: SupabaseClient): ResidentRepository {
       if (error) throw new Error(`[supabase adapter] residents.getById: ${error.message}`)
       return data ? toResident(data as ResidentRow) : null
     },
+    async listByIds(ids) {
+      if (ids.length === 0) return []
+      const { data, error } = await client.from('residents').select().in('id', ids)
+      if (error) throw new Error(`[supabase adapter] residents.listByIds: ${error.message}`)
+      return (data as ResidentRow[]).map(toResident)
+    },
     async listByResidence(residenceId) {
       const { data, error } = await client
         .from('residents')
@@ -328,6 +346,19 @@ function createResidentRepository(client: SupabaseClient): ResidentRepository {
         .eq('residence_id', residenceId)
         .order('created_at', { ascending: true })
       if (error) throw new Error(`[supabase adapter] residents.listByResidence: ${error.message}`)
+      return (data as ResidentRow[]).map(toResident)
+    },
+    // Same embedded-resource-filter pattern as items.listByBlock below — residents has no
+    // block_id of its own, so this filters through residences via PostgREST's `!inner` join
+    // instead of looping listByResidence once per residence (was the community page's main
+    // source of slowness on larger blocks: N sequential round-trips instead of one).
+    async listByBlock(blockId) {
+      const { data, error } = await client
+        .from('residents')
+        .select('*, residences!inner(block_id)')
+        .eq('residences.block_id', blockId)
+        .order('created_at', { ascending: true })
+      if (error) throw new Error(`[supabase adapter] residents.listByBlock: ${error.message}`)
       return (data as ResidentRow[]).map(toResident)
     },
     async approve(id, stewardId) {
@@ -405,6 +436,16 @@ function createContactMethodRepository(client: SupabaseClient): ContactMethodRep
         .eq('resident_id', residentId)
         .order('created_at', { ascending: true })
       if (error) throw new Error(`[supabase adapter] contactMethods.listByResident: ${error.message}`)
+      return (data as ContactMethodRow[]).map(toContactMethod)
+    },
+    async listByResidents(residentIds) {
+      if (residentIds.length === 0) return []
+      const { data, error } = await client
+        .from('contact_methods')
+        .select()
+        .in('resident_id', residentIds)
+        .order('created_at', { ascending: true })
+      if (error) throw new Error(`[supabase adapter] contactMethods.listByResidents: ${error.message}`)
       return (data as ContactMethodRow[]).map(toContactMethod)
     },
     async listByUserId(userId) {

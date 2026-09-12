@@ -24,6 +24,9 @@ export interface BlockRepository {
   create(input: BlockInput): Promise<Block>
   getById(id: string): Promise<Block | null>
   getByCode(code: string): Promise<Block | null>
+  // Batched getById — resolving a user's memberships means looking up several blocks by id at
+  // once; one query beats N round-trips. See listApprovedResidentBlocks in lib/application.ts.
+  listByIds(ids: string[]): Promise<Block[]>
   listAll(): Promise<Block[]>
   update(id: string, input: Partial<BlockInput> & { status?: Block['status'] }): Promise<Block>
   delete(id: string): Promise<void>
@@ -32,6 +35,8 @@ export interface BlockRepository {
 export interface ResidenceRepository {
   create(input: ResidenceInput): Promise<Residence>
   getById(id: string): Promise<Residence | null>
+  // Batched getById, same rationale as BlockRepository.listByIds.
+  listByIds(ids: string[]): Promise<Residence[]>
   listByBlock(blockId: string): Promise<Residence[]>
   update(id: string, input: Partial<ResidenceInput>): Promise<Residence>
   delete(id: string): Promise<void>
@@ -40,7 +45,12 @@ export interface ResidenceRepository {
 export interface ResidentRepository {
   create(input: ResidentInput): Promise<Resident>
   getById(id: string): Promise<Resident | null>
+  // Batched getById, same rationale as BlockRepository.listByIds.
+  listByIds(ids: string[]): Promise<Resident[]>
   listByResidence(residenceId: string): Promise<Resident[]>
+  // Every resident across every residence in the block, in one query — how the community page
+  // builds its full residence->residents map without looping listByResidence per residence.
+  listByBlock(blockId: string): Promise<Resident[]>
   approve(id: string, stewardId: string): Promise<Resident>
   moveOut(id: string): Promise<Resident>
   setName(id: string, name: string): Promise<Resident>
@@ -52,6 +62,9 @@ export interface ContactMethodRepository {
   create(input: ContactMethodInput): Promise<ContactMethod>
   getById(id: string): Promise<ContactMethod | null>
   listByResident(residentId: string): Promise<ContactMethod[]>
+  // Contact methods for several residents at once — how the community page and
+  // getResidentDirectory avoid one query per resident.
+  listByResidents(residentIds: string[]): Promise<ContactMethod[]>
   // Every contact method a given Supabase Auth user has verified, across every block/residence
   // they've ever registered at — how a returning resident's session gets resolved back to
   // their resident row(s). See resolveApprovedResident in lib/application.ts.
