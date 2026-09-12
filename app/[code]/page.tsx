@@ -25,12 +25,17 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
   if (!block) notFound()
 
   const user = await getUserFromServerComponent()
-  const isSteward = user ? (await resolveActiveSteward(block.id, user.id)) !== null : false
-  const viewerResident = user ? await resolveApprovedResident(block.id, user.id) : null
+  // The three lookups below don't depend on each other — running them together instead of one
+  // after another saves two round-trips' worth of latency on every load of this page.
+  const [steward, viewerResident, residences] = await Promise.all([
+    user ? resolveActiveSteward(block.id, user.id) : Promise.resolve(null),
+    user ? resolveApprovedResident(block.id, user.id) : Promise.resolve(null),
+    repo.residences.listByBlock(block.id),
+  ])
+  const isSteward = steward !== null
   const hasPrivateAccess = isSteward || viewerResident !== null
   const viewerContacts = viewerResident ? await repo.contactMethods.listByResident(viewerResident.id) : []
 
-  const residences = await repo.residences.listByBlock(block.id)
   const joinOptions = residences.map((r) => ({ id: r.id, label: r.label, nickname: r.nickname, shape: r.shape }))
   // stewardNotes is steward-eyes-only — strip it before a residence reaches any client prop for
   // a non-steward viewer. Not just a UI gate: this keeps it out of the page's RSC payload
@@ -41,21 +46,30 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
   // promote/move-out controls; approved residents see the peer-safe view instead —
   // approved-only, block_wide contacts only.
   let residentsByResidence: Map<string, ResidentRow[]> | null = null
-  let activeStewardUserIds: string[] = []
+  let activeStewards: { userId: string; stewardId: string }[] = []
   if (isSteward) {
-    residentsByResidence = new Map()
-    for (const residence of residences) {
-      const residents = await repo.residents.listByResidence(residence.id)
-      const rows = await Promise.all(
-        residents.map(async (resident) => ({
-          resident,
-          contacts: await repo.contactMethods.listByResident(resident.id),
-        }))
-      )
-      residentsByResidence.set(residence.id, rows)
+    const [allResidents, stewards] = await Promise.all([
+      repo.residents.listByBlock(block.id),
+      repo.stewards.listByBlock(block.id),
+    ])
+    const contacts = await repo.contactMethods.listByResidents(allResidents.map((r) => r.id))
+    const contactsByResident = new Map<string, ContactMethod[]>()
+    for (const contact of contacts) {
+      const list = contactsByResident.get(contact.residentId) ?? []
+      list.push(contact)
+      contactsByResident.set(contact.residentId, list)
     }
-    const stewards = await repo.stewards.listByBlock(block.id)
-    activeStewardUserIds = stewards.filter((s) => s.status === 'active').map((s) => s.userId)
+
+    residentsByResidence = new Map(residences.map((residence) => [residence.id, [] as ResidentRow[]]))
+    for (const resident of allResidents) {
+      residentsByResidence.get(resident.residenceId)?.push({
+        resident,
+        contacts: contactsByResident.get(resident.id) ?? [],
+      })
+    }
+    activeStewards = stewards
+      .filter((s) => s.status === 'active')
+      .map((s) => ({ userId: s.userId, stewardId: s.id }))
   } else if (hasPrivateAccess) {
     const directory = await getResidentDirectory(block.id)
     residentsByResidence = new Map(directory.map((entry) => [entry.residence.id, entry.residents]))
@@ -121,7 +135,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                       }))
                     : null
                 }
-                activeStewardUserIds={activeStewardUserIds}
+                activeStewards={activeStewards}
                 showExportLink={isSteward || block.residentExportEnabled}
                 viewerEmail={user?.email ?? null}
                 viewerResidenceId={viewerResident?.residenceId ?? null}

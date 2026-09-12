@@ -188,6 +188,32 @@ export async function promoteResidentToSteward(residentId: string, promotedBy: s
   return repo.stewards.promote(residence.blockId, userId, promotedBy)
 }
 
+export type DemoteStewardResult = { error: string; status: number } | { steward: Steward }
+
+/**
+ * Deactivates an active steward back to a regular resident (status -> 'inactive', row kept for
+ * history — same non-destructive pattern as moveResidentOut). Refuses to demote a block's last
+ * active steward: every community has to keep at least one, or nobody could manage it afterward.
+ */
+export async function demoteSteward(stewardId: string, callerUserId: string): Promise<DemoteStewardResult> {
+  const repo = getRepository()
+  const target = await repo.stewards.getById(stewardId)
+  if (!target) return { error: 'Steward not found', status: 404 }
+
+  const caller = await resolveActiveSteward(target.blockId, callerUserId)
+  if (!caller) return { error: 'Not a steward of this community', status: 403 }
+
+  if (target.status !== 'active') return { steward: target }
+
+  const blockStewards = await repo.stewards.listByBlock(target.blockId)
+  const activeCount = blockStewards.filter((s) => s.status === 'active').length
+  if (activeCount <= 1) {
+    return { error: 'A community needs at least one steward — promote someone else first.', status: 400 }
+  }
+
+  return { steward: await repo.stewards.setStatus(stewardId, 'inactive') }
+}
+
 /** Resolves a user to their active steward row for a block, or null if they aren't one. */
 export async function resolveActiveSteward(blockId: string, userId: string): Promise<Steward | null> {
   const repo = getRepository()
@@ -239,20 +265,40 @@ export async function authorizeOwnResident(residentId: string, userId: string): 
 }
 
 /**
+ * Every approved resident row a signed-in user's verified contact methods resolve to, paired
+ * with its residence — the shared traversal behind resolveApprovedResident and
+ * listApprovedResidentBlocks. Three batched queries (contact methods -> residents -> residences)
+ * regardless of how many blocks the user has ever registered at, instead of a getById chain per
+ * contact method.
+ */
+async function resolveApprovedResidencesForUser(
+  userId: string
+): Promise<{ resident: Resident; residence: Residence }[]> {
+  const repo = getRepository()
+  const contactMethods = await repo.contactMethods.listByUserId(userId)
+  const residentIds = [...new Set(contactMethods.map((c) => c.residentId))]
+  if (residentIds.length === 0) return []
+
+  const residents = (await repo.residents.listByIds(residentIds)).filter((r) => r.status === 'approved')
+  if (residents.length === 0) return []
+
+  const residenceIds = [...new Set(residents.map((r) => r.residenceId))]
+  const residenceById = new Map((await repo.residences.listByIds(residenceIds)).map((r) => [r.id, r]))
+
+  return residents.flatMap((resident) => {
+    const residence = residenceById.get(resident.residenceId)
+    return residence ? [{ resident, residence }] : []
+  })
+}
+
+/**
  * Resolves a signed-in user to their approved resident row for a block, or null if they aren't
  * one. A user can hold several verified contact methods (one per block they've ever registered
  * at) — this checks all of them for one that lands in this block and is approved.
  */
 export async function resolveApprovedResident(blockId: string, userId: string): Promise<Resident | null> {
-  const repo = getRepository()
-  const contactMethods = await repo.contactMethods.listByUserId(userId)
-  for (const contactMethod of contactMethods) {
-    const resident = await repo.residents.getById(contactMethod.residentId)
-    if (!resident || resident.status !== 'approved') continue
-    const residence = await repo.residences.getById(resident.residenceId)
-    if (residence?.blockId === blockId) return resident
-  }
-  return null
+  const entries = await resolveApprovedResidencesForUser(userId)
+  return entries.find((e) => e.residence.blockId === blockId)?.resident ?? null
 }
 
 export type MemberBlock = { block: Block; resident: Resident }
@@ -263,16 +309,16 @@ export type MemberBlock = { block: Block; resident: Resident }
  * with more than one verified contact method landing in the same block only appears once.
  */
 export async function listApprovedResidentBlocks(userId: string): Promise<MemberBlock[]> {
-  const repo = getRepository()
-  const contactMethods = await repo.contactMethods.listByUserId(userId)
+  const entries = await resolveApprovedResidencesForUser(userId)
+  const blockIds = [...new Set(entries.map((e) => e.residence.blockId))]
+  if (blockIds.length === 0) return []
+
+  const blockById = new Map((await getRepository().blocks.listByIds(blockIds)).map((b) => [b.id, b]))
   const seenBlockIds = new Set<string>()
   const results: MemberBlock[] = []
-  for (const contactMethod of contactMethods) {
-    const resident = await repo.residents.getById(contactMethod.residentId)
-    if (!resident || resident.status !== 'approved') continue
-    const residence = await repo.residences.getById(resident.residenceId)
-    if (!residence || seenBlockIds.has(residence.blockId)) continue
-    const block = await repo.blocks.getById(residence.blockId)
+  for (const { resident, residence } of entries) {
+    if (seenBlockIds.has(residence.blockId)) continue
+    const block = blockById.get(residence.blockId)
     if (!block) continue
     seenBlockIds.add(block.id)
     results.push({ block, resident })
@@ -293,21 +339,27 @@ export type DirectoryEntry = {
  */
 export async function getResidentDirectory(blockId: string): Promise<DirectoryEntry[]> {
   const repo = getRepository()
-  const residences = await repo.residences.listByBlock(blockId)
-  const directory: DirectoryEntry[] = []
-  for (const residence of residences) {
-    const approvedResidents = (await repo.residents.listByResidence(residence.id)).filter(
-      (r) => r.status === 'approved'
-    )
-    const residents = await Promise.all(
-      approvedResidents.map(async (resident) => ({
-        resident,
-        contacts: (await repo.contactMethods.listByResident(resident.id)).filter(
-          (c) => c.visibility === 'block_wide'
-        ),
-      }))
-    )
-    directory.push({ residence, residents })
+  const [residences, allResidents] = await Promise.all([
+    repo.residences.listByBlock(blockId),
+    repo.residents.listByBlock(blockId),
+  ])
+  const approvedResidents = allResidents.filter((r) => r.status === 'approved')
+  const contacts = await repo.contactMethods.listByResidents(approvedResidents.map((r) => r.id))
+
+  const blockWideContactsByResident = new Map<string, ContactMethod[]>()
+  for (const contact of contacts) {
+    if (contact.visibility !== 'block_wide') continue
+    const list = blockWideContactsByResident.get(contact.residentId) ?? []
+    list.push(contact)
+    blockWideContactsByResident.set(contact.residentId, list)
   }
-  return directory
+
+  const residentsByResidence = new Map<string, DirectoryEntry['residents']>()
+  for (const resident of approvedResidents) {
+    const list = residentsByResidence.get(resident.residenceId) ?? []
+    list.push({ resident, contacts: blockWideContactsByResident.get(resident.id) ?? [] })
+    residentsByResidence.set(resident.residenceId, list)
+  }
+
+  return residences.map((residence) => ({ residence, residents: residentsByResidence.get(residence.id) ?? [] }))
 }

@@ -7,7 +7,8 @@ import type { SuggestionPreview } from '@/lib/overpass'
 import ApproveResidentButton from './ApproveResidentButton'
 import PromoteToStewardButton from './PromoteToStewardButton'
 import MoveResidentOutButton from './MoveResidentOutButton'
-import RemovePendingResidentButton from './RemovePendingResidentButton'
+import DemoteStewardButton from './DemoteStewardButton'
+import DeleteResidentButton from './DeleteResidentButton'
 import ResidenceControls from './ResidenceControls'
 import ResidenceNicknameEditor from './ResidenceNicknameEditor'
 import ResidenceStewardNotes from './ResidenceStewardNotes'
@@ -43,7 +44,7 @@ const nextMapEditSeq = () => (mapEditSeq += 1)
 export default function ResidencesSection({
   entries,
   isSteward,
-  activeStewardUserIds,
+  activeStewards,
   blockId,
   blockBoundary,
   canvasType,
@@ -55,7 +56,7 @@ export default function ResidencesSection({
 }: {
   entries: Entry[]
   isSteward: boolean
-  activeStewardUserIds: string[]
+  activeStewards: { userId: string; stewardId: string }[]
   blockId: string
   blockBoundary: Feature<Polygon | MultiPolygon> | null
   canvasType: CanvasType
@@ -76,7 +77,7 @@ export default function ResidencesSection({
   const [editShapeCommand, setEditShapeCommand] = useState<EditShapeCommand | null>(null)
   const [mapMode, setMapMode] = useState<MapMode>('idle')
 
-  const stewardUserIds = new Set(activeStewardUserIds)
+  const stewardIdByUserId = new Map(activeStewards.map((s) => [s.userId, s.stewardId]))
   const shapedCount = entries.filter((e) => e.residence.shape).length
   // Also true once a draw/edit request is in flight — lets a steward bootstrap a community's very
   // first shape even before a boundary exists or any other residence has one (the map falls back
@@ -322,14 +323,25 @@ export default function ResidencesSection({
   const renderResidentCard = ({ resident, contacts }: ResidentRow) => {
     const email = contacts.find((c) => c.type === 'email')
     const phone = contacts.find((c) => c.type === 'phone')
-    const isAlreadySteward = contacts.some((c) => c.userId && stewardUserIds.has(c.userId))
+    const stewardContact = contacts.find((c) => c.userId && stewardIdByUserId.has(c.userId))
+    const stewardId = stewardContact?.userId ? stewardIdByUserId.get(stewardContact.userId) : undefined
+    const movedOut = resident.status === 'moved_out'
     return (
       <li
         key={resident.id}
-        className="rounded-lg border border-border bg-surface-muted px-3 py-2.5 space-y-2"
+        className={`rounded-lg border border-border bg-surface-muted px-3 py-2.5 space-y-2 ${
+          movedOut ? 'opacity-60' : ''
+        }`}
       >
         <div className="text-base">
-          <span className="text-ink font-medium break-words">{resident.name}</span>
+          <span className={`font-medium break-words ${movedOut ? 'text-muted line-through' : 'text-ink'}`}>
+            {resident.name}
+          </span>
+          {movedOut && (
+            <span className="ml-2 text-xs px-2 py-0.5 rounded-full font-medium bg-surface text-muted border border-border align-middle">
+              Moved out
+            </span>
+          )}
           {email && (
             <span className="text-sm text-muted break-words">
               {' '}
@@ -345,28 +357,29 @@ export default function ResidencesSection({
         {isSteward && resident.status === 'pending' && email?.verifiedAt && (
           <div className="flex items-center gap-2 flex-wrap">
             <ApproveResidentButton residentId={resident.id} />
-            <RemovePendingResidentButton residentId={resident.id} residentName={resident.name} />
+            <DeleteResidentButton residentId={resident.id} residentName={resident.name} />
           </div>
         )}
         {isSteward && resident.status === 'pending' && !email?.verifiedAt && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-muted">awaiting verification</span>
-            <RemovePendingResidentButton residentId={resident.id} residentName={resident.name} />
+            <DeleteResidentButton residentId={resident.id} residentName={resident.name} />
           </div>
         )}
         {isSteward && resident.status === 'approved' && (
           <div className="flex items-center gap-2 flex-wrap">
-            {isAlreadySteward ? (
-              <span className="text-sm text-accent font-medium">Steward</span>
+            {stewardId ? (
+              <>
+                <span className="text-sm text-accent font-medium">Steward</span>
+                <DemoteStewardButton stewardId={stewardId} residentName={resident.name} />
+              </>
             ) : (
               <PromoteToStewardButton residentId={resident.id} residentName={resident.name} />
             )}
             <MoveResidentOutButton residentId={resident.id} residentName={resident.name} />
           </div>
         )}
-        {isSteward && resident.status === 'moved_out' && (
-          <span className="text-sm text-muted">moved out</span>
-        )}
+        {isSteward && movedOut && <DeleteResidentButton residentId={resident.id} residentName={resident.name} />}
       </li>
     )
   }

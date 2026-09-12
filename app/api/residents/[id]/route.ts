@@ -4,10 +4,10 @@ import { getRepository } from '@/lib/db'
 import { resolveStewardForResident } from '@/lib/application'
 
 /**
- * Steward-only: removes a pending resident (and their contact methods, via FK cascade) —
- * cleans up an abandoned or mistaken registration attempt. Deliberately pending-only — an
- * approved resident has real history and should go through "Move out" instead, which preserves
- * a record rather than deleting it outright.
+ * Steward-only: permanently deletes a resident — and their contact methods and lending-library
+ * items, via FK cascade. Offered for a pending registration (cleans up an abandoned or mistaken
+ * signup) or someone already moved out. An approved resident has to go through "Move out" first
+ * — deleting active history outright isn't offered.
  */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: residentId } = await params
@@ -17,8 +17,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const result = await resolveStewardForResident(residentId, user.id)
   if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status })
 
-  if (result.resident.status !== 'pending') {
-    return NextResponse.json({ error: 'Only a pending registration can be removed this way' }, { status: 400 })
+  if (result.resident.status !== 'pending' && result.resident.status !== 'moved_out') {
+    return NextResponse.json(
+      { error: 'Only a pending registration or a moved-out resident can be removed this way' },
+      { status: 400 }
+    )
   }
 
   const repo = getRepository()

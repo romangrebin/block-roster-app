@@ -31,7 +31,7 @@ export default function ResidencesWorkspace({
   blockBoundary,
   canvasType,
   entries,
-  activeStewardUserIds,
+  activeStewards,
   showExportLink,
   viewerEmail,
   viewerResidenceId,
@@ -41,7 +41,7 @@ export default function ResidencesWorkspace({
   blockBoundary: Feature<Polygon | MultiPolygon> | null
   canvasType: CanvasType
   entries: Entry[] | null
-  activeStewardUserIds: string[]
+  activeStewards: { userId: string; stewardId: string }[]
   showExportLink: boolean
   viewerEmail: string | null
   viewerResidenceId: string | null
@@ -82,7 +82,7 @@ export default function ResidencesWorkspace({
         <ResidencesSection
           entries={entries}
           isSteward={isSteward}
-          activeStewardUserIds={activeStewardUserIds}
+          activeStewards={activeStewards}
           blockId={blockId}
           blockBoundary={blockBoundary}
           canvasType={canvasType}
