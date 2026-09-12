@@ -144,9 +144,42 @@ export async function verifyAndMaybeAutoApprove(
   return { contactMethod, autoApproved }
 }
 
+/**
+ * Emails a resident once a steward approves them — the point where they actually gain access to
+ * the roster. Sent to their own verified email contact method (not looked up via Supabase Auth,
+ * unlike the steward notification above), since that's the address they registered with and
+ * expect to hear from. Silently skipped if they registered with phone only.
+ */
+async function notifyResidentOfApproval(resident: Resident) {
+  const repo = getRepository()
+  const residence = await repo.residences.getById(resident.residenceId)
+  if (!residence) return
+  const [block, contacts] = await Promise.all([
+    repo.blocks.getById(residence.blockId),
+    repo.contactMethods.listByResident(resident.id),
+  ])
+  if (!block) return
+  const email = contacts.find((c) => c.type === 'email' && c.verifiedAt)
+  if (!email) return
+
+  const safeName = escapeHtml(resident.name)
+  const safeBlockName = escapeHtml(block.name)
+  const siteUrl = process.env.SITE_URL
+  const openLink = siteUrl
+    ? `<p><a href="${siteUrl}/${encodeURIComponent(block.code)}">Open ${safeBlockName}</a></p>`
+    : ''
+  await sendEmail({
+    to: [email.value],
+    subject: `You're approved for ${block.name}`,
+    html: `<p>Hi ${safeName},</p><p>A steward approved your registration for <strong>${safeBlockName}</strong> — you can now see your neighbors, read what your steward's posted, and everything else there.</p>${openLink}`,
+  })
+}
+
 export async function approveResident(residentId: string, stewardId: string): Promise<Resident> {
   const repo = getRepository()
-  return repo.residents.approve(residentId, stewardId)
+  const resident = await repo.residents.approve(residentId, stewardId)
+  await notifyResidentOfApproval(resident)
+  return resident
 }
 
 /**
