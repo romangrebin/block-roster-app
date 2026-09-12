@@ -25,7 +25,7 @@ const PRIMARY_BUTTON_CLASS =
   "inline-block bg-accent text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-accent-dark transition-colors shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]";
 
 type BlockRole = "steward" | "resident";
-type BlockEntry = { block: Block; total: number; role: BlockRole };
+type BlockEntry = { block: Block; total: number; role: BlockRole; pendingCount: number };
 
 async function loadBlockEntry(
   repo: ReturnType<typeof getRepository>,
@@ -33,7 +33,13 @@ async function loadBlockEntry(
   role: BlockRole
 ): Promise<BlockEntry> {
   const residences = await repo.residences.listByBlock(block.id);
-  return { block, total: residences.length, role };
+  // Only a steward can act on a pending registration, so there's no reason to spend a query on
+  // this for a block the viewer is merely a resident of.
+  const pendingCount =
+    role === "steward"
+      ? (await repo.residents.listByBlock(block.id)).filter((r) => r.status === "pending").length
+      : 0;
+  return { block, total: residences.length, role, pendingCount };
 }
 
 export default async function Home() {
@@ -87,13 +93,13 @@ export default async function Home() {
           <div className="max-w-xl mx-auto w-full text-left space-y-4">
             <h2 className="text-lg font-medium text-ink">Your communities</h2>
             <ul className="divide-y divide-border border border-border rounded-2xl bg-surface">
-              {blocks.map(({ block, total, role }) => (
+              {blocks.map(({ block, total, role, pendingCount }) => (
                 <li key={block.id}>
                   <Link
                     href={`/${block.code}`}
                     className="flex items-center justify-between px-5 py-4 hover:bg-surface-muted transition-colors gap-4"
                   >
-                    <span className="flex items-center gap-2.5 min-w-0">
+                    <span className="flex items-center gap-2.5 min-w-0 flex-wrap">
                       <span className="text-lg font-medium text-ink truncate">{block.name}</span>
                       <span
                         className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -102,6 +108,11 @@ export default async function Home() {
                       >
                         {role === "steward" ? "Steward" : "Resident"}
                       </span>
+                      {pendingCount > 0 && (
+                        <span className="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-accent text-white">
+                          {pendingCount} pending
+                        </span>
+                      )}
                     </span>
                     <span className="shrink-0 text-base text-muted">
                       {total} residence{total === 1 ? "" : "s"}
