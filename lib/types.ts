@@ -22,6 +22,11 @@ export type Block = {
   // Steward-controlled: the Lending Library is opt-in complexity, off by default. Nothing about
   // items themselves is deleted when this is turned off — the tab just stops showing.
   lendingLibraryEnabled: boolean
+  // Off by default: a new registration normally waits for a steward to click Approve. When on,
+  // verifyAndMaybeAutoApprove (lib/application.ts) approves it the moment the resident verifies
+  // their contact method instead — stewards still get an email either way, see
+  // notifyStewardsOfRegistration.
+  autoApproveJoins: boolean
   // Pseudo-secret slug for the public/private landing page at /<code> — see lib/blockCode.ts.
   code: string
   // Shown to anyone who knows the code, no sign-in required.
@@ -41,6 +46,7 @@ export type BlockInput = {
   privateNotes?: string | null
   residentExportEnabled?: boolean
   lendingLibraryEnabled?: boolean
+  autoApproveJoins?: boolean
 }
 
 export type Residence = {
@@ -81,7 +87,7 @@ export type Resident = {
   residenceId: string
   name: string
   status: ResidentStatus
-  approvedBy: string | null // steward id
+  approvedBy: string | null // steward id, or null if auto-approved (blocks.autoApproveJoins) — nobody actually clicked approve
   approvedAt: string | null
   // Freeform, always block-wide, no per-field visibility — replaces the earlier curated
   // true/false self-declared-flags idea entirely.

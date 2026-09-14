@@ -19,6 +19,7 @@ export default function EnterCodeBox() {
     <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full max-w-md">
       <input
         type="text"
+        name="communityCode"
         value={code}
         onChange={(e) => setCode(e.target.value)}
         maxLength={32}

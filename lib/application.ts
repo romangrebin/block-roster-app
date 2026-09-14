@@ -71,14 +71,23 @@ export async function verifyContactMethod(
 }
 
 /**
- * Emails every active steward of a block when a resident finishes registering and still needs
- * approval — the point where a steward can actually do something about it (verifying first,
- * rather than notifying on the raw form submission, avoids pinging stewards about registrations
- * abandoned before the confirmation link is ever clicked). Steward emails come from Supabase
- * Auth itself (`stewards` only stores a `userId`) via the admin API, one lookup per steward —
- * fine at the handful-of-stewards-per-community scale this app operates at.
+ * Emails every active steward of a block when a resident finishes registering — either still
+ * waiting on approval, or already auto-approved because the block has that turned on
+ * (`autoApproveJoins`; see BlockContentForm) — the point where a steward can actually do
+ * something about it (verifying first, rather than notifying on the raw form submission, avoids
+ * pinging stewards about registrations abandoned before the confirmation link is ever clicked).
+ * Includes the resident's contact info and blurb so a steward can judge them (or just follow up)
+ * straight from the email, without having to click through first. Steward emails come from
+ * Supabase Auth itself (`stewards` only stores a `userId`) via the admin API, one lookup per
+ * steward — fine at the handful-of-stewards-per-community scale this app operates at.
  */
-async function notifyStewardsOfNewRegistration(blockId: string, residentName: string, residenceLabel: string) {
+async function notifyStewardsOfRegistration(
+  blockId: string,
+  resident: Resident,
+  residenceLabel: string,
+  contactMethod: ContactMethod,
+  autoApproved: boolean
+) {
   const repo = getRepository()
   const [block, stewards] = await Promise.all([repo.blocks.getById(blockId), repo.stewards.listByBlock(blockId)])
   if (!block) return
@@ -93,26 +102,38 @@ async function notifyStewardsOfNewRegistration(blockId: string, residentName: st
   }
   if (emails.length === 0) return
 
-  // Every interpolated value below is user-supplied (resident name/residence label) or free-text
-  // a steward set (community name) — escape before it goes into an HTML email body.
-  const safeName = escapeHtml(residentName)
+  // Every interpolated value below is user-supplied (resident name/blurb/contact value,
+  // residence label) or free-text a steward set (community name) — escape before it goes into
+  // an HTML email body.
+  const safeName = escapeHtml(resident.name)
   const safeLabel = escapeHtml(residenceLabel)
   const safeBlockName = escapeHtml(block.name)
+  const contactLabel = contactMethod.type === 'email' ? 'Email' : 'Phone'
+  const safeContactValue = escapeHtml(contactMethod.value)
+  const blurbLine = resident.blurb ? `<p>${escapeHtml(resident.blurb)}</p>` : ''
   const siteUrl = process.env.SITE_URL
   const reviewLink = siteUrl
-    ? `<p><a href="${siteUrl}/${encodeURIComponent(block.code)}">Review it in ${safeBlockName}</a></p>`
+    ? `<p><a href="${siteUrl}/${encodeURIComponent(block.code)}">Open ${safeBlockName}</a></p>`
     : ''
+
+  const intro = autoApproved
+    ? `<p><strong>${safeName}</strong> just joined <strong>${safeLabel}</strong> — auto-approved, since that's turned on for ${safeBlockName}.</p>`
+    : `<p><strong>${safeName}</strong> just registered at <strong>${safeLabel}</strong> and is waiting for a steward to approve them.</p>`
+
   await sendEmail({
     to: emails,
-    subject: `${residentName} wants to join ${block.name}`,
-    html: `<p><strong>${safeName}</strong> just registered at <strong>${safeLabel}</strong> and is waiting for a steward to approve them.</p>${reviewLink}`,
+    subject: autoApproved ? `${resident.name} just joined ${block.name}` : `${resident.name} wants to join ${block.name}`,
+    html: `${intro}<p>${contactLabel}: ${safeContactValue}</p>${blurbLine}${reviewLink}`,
   })
 }
 
 /**
- * Verifies a contact method, then either auto-approves (if the verifying session belongs to an
- * active steward of that residence's block — they're already the trusted party who'd normally
- * be the one clicking Approve) or notifies the block's stewards that someone's waiting on them.
+ * Verifies a contact method, then decides how to handle the now-pending registration:
+ * auto-approves if either the verifying session belongs to an active steward of that residence's
+ * block (they're already the trusted party who'd normally be the one clicking Approve — attributed
+ * to them, `approvedBy` set) or the block has `autoApproveJoins` turned on (nobody actually
+ * approved it — `approvedBy` left null). Stewards get an email either way (approval-needed or
+ * already-auto-approved), except when they approved themselves just now, since they already know.
  * Shared by app/[code]/complete (a fresh magic-link click) and the register route's fast path
  * (the visitor was already signed in under this exact email, so there's nothing left for a
  * magic link to prove). Guarded by `alreadyVerified` so reloading the confirmation page (or
@@ -132,12 +153,20 @@ export async function verifyAndMaybeAutoApprove(
     const resident = await repo.residents.getById(contactMethod.residentId)
     if (resident && resident.status === 'pending') {
       const residence = await repo.residences.getById(resident.residenceId)
-      const steward = residence ? await resolveActiveSteward(residence.blockId, userId) : null
-      if (steward) {
-        await approveResident(resident.id, steward.id)
-        autoApproved = true
-      } else if (residence) {
-        await notifyStewardsOfNewRegistration(residence.blockId, resident.name, residence.nickname || residence.label)
+      if (residence) {
+        const residenceLabel = residence.nickname || residence.label
+        const verifyingSteward = await resolveActiveSteward(residence.blockId, userId)
+        if (verifyingSteward) {
+          await approveResident(resident.id, verifyingSteward.id)
+          autoApproved = true
+        } else {
+          const block = await repo.blocks.getById(residence.blockId)
+          if (block?.autoApproveJoins) {
+            await approveResident(resident.id, null)
+            autoApproved = true
+          }
+          await notifyStewardsOfRegistration(residence.blockId, resident, residenceLabel, contactMethod, autoApproved)
+        }
       }
     }
   }
@@ -171,11 +200,12 @@ async function notifyResidentOfApproval(resident: Resident) {
   await sendEmail({
     to: [email.value],
     subject: `You're approved for ${block.name}`,
-    html: `<p>Hi ${safeName},</p><p>A steward approved your registration for <strong>${safeBlockName}</strong> — you can now see your neighbors, read what your steward's posted, and everything else there.</p>${openLink}`,
+    html: `<p>Hi ${safeName},</p><p>You're approved for <strong>${safeBlockName}</strong> — you can now see your neighbors, read what your steward's posted, and everything else there.</p>${openLink}`,
   })
 }
 
-export async function approveResident(residentId: string, stewardId: string): Promise<Resident> {
+// stewardId is null for auto-approval (blocks.autoApproveJoins) — nobody actually approved it.
+export async function approveResident(residentId: string, stewardId: string | null): Promise<Resident> {
   const repo = getRepository()
   const resident = await repo.residents.approve(residentId, stewardId)
   await notifyResidentOfApproval(resident)

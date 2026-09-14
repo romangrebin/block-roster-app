@@ -74,7 +74,14 @@ export default function LendingLibrarySection({
         )}
       </div>
 
-      {view === 'mine' && viewerResidentId && <AddItemForm blockId={blockId} />}
+      {view === 'mine' && viewerResidentId && (
+        <>
+          <p className="text-sm text-muted">
+            Items you&apos;re willing to share and neighbors might want to borrow. Especially good for rarely-used tools that are invaluable when actually needed!
+          </p>
+          <AddItemForm blockId={blockId} />
+        </>
+      )}
 
       {visible.length === 0 ? (
         <p className="text-base text-muted">
@@ -116,6 +123,13 @@ export default function LendingLibrarySection({
             </li>
           ))}
         </ul>
+      )}
+
+      {view === 'browse' && (
+        <div className="text-sm text-muted space-y-1">
+          <p>If you have an item you&apos;d like to borrow, reach out to your neighbors! They&apos;re very friendly.</p>
+          {viewerResidentId && <p>Have something you&apos;re willing to share? Add it under &quot;My items&quot;.</p>}
+        </div>
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}

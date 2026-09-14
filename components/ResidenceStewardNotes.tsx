@@ -53,7 +53,7 @@ export default function ResidenceStewardNotes({
         onChange={(e) => setNotes(e.target.value)}
         maxLength={MAX_TEXT.stewardNotes}
         rows={2}
-        placeholder="e.g. 4 people live here, incl. 1 vegan. Dog named Fido."
+        placeholder="e.g. number of people who live here, dietary restrictions, pets, ..."
         className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
       />
       <CharCount value={notes} max={MAX_TEXT.stewardNotes} />

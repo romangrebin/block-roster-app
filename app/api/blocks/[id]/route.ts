@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (typeof body.privateNotes === 'string') patch.privateNotes = cappedText(body.privateNotes, MAX_TEXT.privateNotes) || null
   if (typeof body.residentExportEnabled === 'boolean') patch.residentExportEnabled = body.residentExportEnabled
   if (typeof body.lendingLibraryEnabled === 'boolean') patch.lendingLibraryEnabled = body.lendingLibraryEnabled
+  if (typeof body.autoApproveJoins === 'boolean') patch.autoApproveJoins = body.autoApproveJoins
 
   try {
     const block = await getRepository().blocks.update(blockId, patch)

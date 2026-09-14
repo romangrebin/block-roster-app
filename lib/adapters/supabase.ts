@@ -40,6 +40,7 @@ type BlockRow = {
   status: 'draft' | 'live' | 'archived'
   resident_export_enabled: boolean
   lending_library_enabled: boolean
+  auto_approve_joins: boolean
   code: string
   public_blurb: string | null
   private_notes: string | null
@@ -113,6 +114,7 @@ function toBlock(row: BlockRow): Block {
     status: row.status,
     residentExportEnabled: row.resident_export_enabled,
     lendingLibraryEnabled: row.lending_library_enabled,
+    autoApproveJoins: row.auto_approve_joins,
     code: row.code,
     publicBlurb: row.public_blurb,
     privateNotes: row.private_notes,
@@ -254,6 +256,7 @@ function createBlockRepository(client: SupabaseClient): BlockRepository {
       if (input.privateNotes !== undefined) patch.private_notes = input.privateNotes
       if (input.residentExportEnabled !== undefined) patch.resident_export_enabled = input.residentExportEnabled
       if (input.lendingLibraryEnabled !== undefined) patch.lending_library_enabled = input.lendingLibraryEnabled
+      if (input.autoApproveJoins !== undefined) patch.auto_approve_joins = input.autoApproveJoins
       const { data, error } = await client.from('blocks').update(patch).eq('id', id).select().single()
       if (error) {
         if (error.code === UNIQUE_VIOLATION) throw new Error('That code is already taken.')

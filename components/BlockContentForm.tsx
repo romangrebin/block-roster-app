@@ -25,6 +25,7 @@ export default function BlockContentForm({
   privateNotes: initialPrivateNotes,
   residentExportEnabled: initialResidentExportEnabled,
   lendingLibraryEnabled: initialLendingLibraryEnabled,
+  autoApproveJoins: initialAutoApproveJoins,
 }: {
   blockId: string
   name: string
@@ -33,6 +34,7 @@ export default function BlockContentForm({
   privateNotes: string | null
   residentExportEnabled: boolean
   lendingLibraryEnabled: boolean
+  autoApproveJoins: boolean
 }) {
   const router = useRouter()
   const [name, setName] = useState(initialName)
@@ -41,6 +43,7 @@ export default function BlockContentForm({
   const [privateNotes, setPrivateNotes] = useState(initialPrivateNotes ?? '')
   const [residentExportEnabled, setResidentExportEnabled] = useState(initialResidentExportEnabled)
   const [lendingLibraryEnabled, setLendingLibraryEnabled] = useState(initialLendingLibraryEnabled)
+  const [autoApproveJoins, setAutoApproveJoins] = useState(initialAutoApproveJoins)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -51,7 +54,8 @@ export default function BlockContentForm({
     publicBlurb !== (initialPublicBlurb ?? '') ||
     privateNotes !== (initialPrivateNotes ?? '') ||
     residentExportEnabled !== initialResidentExportEnabled ||
-    lendingLibraryEnabled !== initialLendingLibraryEnabled
+    lendingLibraryEnabled !== initialLendingLibraryEnabled ||
+    autoApproveJoins !== initialAutoApproveJoins
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,6 +74,7 @@ export default function BlockContentForm({
         privateNotes,
         residentExportEnabled,
         lendingLibraryEnabled,
+        autoApproveJoins,
       }),
     })
     const body = await res.json()
@@ -125,6 +130,10 @@ export default function BlockContentForm({
         <label className="block text-base font-medium text-ink mb-1.5">
           Public welcome message <span className="text-muted font-normal">(anyone with the code sees this)</span>
         </label>
+        <p className="text-sm text-muted mb-1.5">
+          Supports Markdown: <span className="font-mono">**bold**</span>,{' '}
+          <span className="font-mono">[link text](https://…)</span>
+        </p>
         <textarea
           value={publicBlurb}
           onChange={(e) => setPublicBlurb(e.target.value)}
@@ -139,6 +148,10 @@ export default function BlockContentForm({
           About this community{' '}
           <span className="text-muted font-normal">(only signed-in, approved residents see this)</span>
         </label>
+        <p className="text-sm text-muted mb-1.5">
+          Supports Markdown: <span className="font-mono">**bold**</span>,{' '}
+          <span className="font-mono">[link text](https://…)</span>
+        </p>
         <textarea
           value={privateNotes}
           onChange={(e) => setPrivateNotes(e.target.value)}
@@ -167,6 +180,20 @@ export default function BlockContentForm({
         <span className="text-base text-ink">
           Enable the Lending Library{' '}
           <span className="text-muted font-normal">(residents can list items to lend each other)</span>
+        </span>
+      </label>
+      <label className="flex items-center gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={autoApproveJoins}
+          onChange={(e) => setAutoApproveJoins(e.target.checked)}
+          className="w-4 h-4 accent-accent cursor-pointer"
+        />
+        <span className="text-base text-ink">
+          Auto-approve new joiners{' '}
+          <span className="text-muted font-normal">
+            (skips the approval step — you&apos;ll still get an email every time someone joins)
+          </span>
         </span>
       </label>
       {error && <p className="text-base text-red-600">{error}</p>}

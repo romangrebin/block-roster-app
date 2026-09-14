@@ -11,6 +11,7 @@ import MyInfoForm from '@/components/MyInfoForm'
 import PageContainer from '@/components/PageContainer'
 import CommunityTabs from '@/components/CommunityTabs'
 import LendingLibrarySection, { type LibraryItem } from '@/components/LendingLibrarySection'
+import MarkdownText from '@/components/MarkdownText'
 
 type ResidentRow = { resident: Resident; contacts: ContactMethod[] }
 
@@ -107,9 +108,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
             {residences.length} residence{residences.length === 1 ? '' : 's'}
           </p>
         )}
-        {block.publicBlurb && (
-          <p className="text-lg text-muted mt-2 whitespace-pre-wrap">{block.publicBlurb}</p>
-        )}
+        {block.publicBlurb && <MarkdownText text={block.publicBlurb} className="text-lg text-muted mt-2" />}
       </div>
 
       {hasPrivateAccess && (
@@ -119,7 +118,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
               {block.privateNotes && (
                 <div className="rounded-2xl border border-border bg-surface-muted p-5">
                   <p className="text-sm font-medium text-muted mb-1.5">About this community</p>
-                  <p className="text-base text-ink whitespace-pre-wrap">{block.privateNotes}</p>
+                  <MarkdownText text={block.privateNotes} className="text-base text-ink" />
                 </div>
               )}
               <ResidencesWorkspace
@@ -198,6 +197,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                   privateNotes={block.privateNotes}
                   residentExportEnabled={block.residentExportEnabled}
                   lendingLibraryEnabled={block.lendingLibraryEnabled}
+                  autoApproveJoins={block.autoApproveJoins}
                 />
               </div>
             )

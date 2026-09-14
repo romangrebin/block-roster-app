@@ -51,7 +51,8 @@ export interface ResidentRepository {
   // Every resident across every residence in the block, in one query — how the community page
   // builds its full residence->residents map without looping listByResidence per residence.
   listByBlock(blockId: string): Promise<Resident[]>
-  approve(id: string, stewardId: string): Promise<Resident>
+  // stewardId is null for auto-approval (blocks.auto_approve_joins) — nobody actually approved it.
+  approve(id: string, stewardId: string | null): Promise<Resident>
   moveOut(id: string): Promise<Resident>
   setName(id: string, name: string): Promise<Resident>
   setBlurb(id: string, blurb: string | null): Promise<Resident>
