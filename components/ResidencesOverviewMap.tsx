@@ -14,8 +14,13 @@ import { BASEMAP_STYLE, boundsOf, PREVIEW_SELECTED, PREVIEW_UNSELECTED } from '@
 import { MAX_TEXT } from '@/lib/validation'
 
 // Green where someone's registered, gray where nobody is — no third "moved out" state; a
-// house someone left reads the same as one nobody ever joined from (Roman's call).
+// house someone left reads the same as one nobody ever joined from (Roman's call). Amber
+// (matching the List's steward-only dot, see ResidencesSection) marks a residence with no
+// registered residents but steward notes on file — visible only to stewards, since
+// notesOnlyResidenceIds is only ever non-empty for a steward viewer (residence.stewardNotes is
+// already redacted to null for anyone else before it reaches this component).
 const OCCUPIED_COLOR = '#16a34a'
+const NOTES_ONLY_COLOR = '#f59e0b'
 const EMPTY_COLOR = '#9ca3af'
 
 type DrawInstance = {
@@ -40,7 +45,11 @@ export type EditShapeRequest = {
  * for EditShapeRequest, but keeps the same shape). */
 export type EditShapeCommand = { nonce: number; action: 'save' | 'cancel' }
 
-function toFeatureCollection(residences: Residence[], occupiedIds: Set<string>): FeatureCollection {
+function toFeatureCollection(
+  residences: Residence[],
+  occupiedIds: Set<string>,
+  notesOnlyIds: Set<string>
+): FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: residences
@@ -48,10 +57,11 @@ function toFeatureCollection(residences: Residence[], occupiedIds: Set<string>):
       .map((r) => ({
         type: 'Feature',
         geometry: (r.shape as Feature<Polygon | MultiPolygon>).geometry,
-        // Only what the layers actually read: `occupied` drives the fill colour, `id` the
-        // selection filter. Clicking a shape just selects the residence — the detail panel
-        // below the map shows label/residents, so the map carries no text of its own.
-        properties: { id: r.id, occupied: occupiedIds.has(r.id) },
+        // Only what the layers actually read: `occupied`/`notesOnly` drive the fill colour, `id`
+        // the selection filter. Clicking a shape just selects the residence — the detail panel
+        // below the map shows label/residents, so the map carries no text of its own (and never
+        // the note content itself — just whether one exists).
+        properties: { id: r.id, occupied: occupiedIds.has(r.id), notesOnly: notesOnlyIds.has(r.id) },
       })),
   }
 }
@@ -81,6 +91,7 @@ export type MapMode = 'idle' | 'drawing-new' | 'editing-existing'
 export default function ResidencesOverviewMap({
   residences,
   occupiedResidenceIds = [],
+  notesOnlyResidenceIds = [],
   boundary,
   previewSuggestions = [],
   isSteward = false,
@@ -93,9 +104,11 @@ export default function ResidencesOverviewMap({
   onModeChange,
 }: {
   residences: Residence[]
-  /** Ids of residences that have at least one registered resident — the only per-residence
-   *  signal the map shows (green shape vs gray). */
+  /** Ids of residences that have at least one registered resident (green shape). */
   occupiedResidenceIds?: string[]
+  /** Ids of residences with steward notes on file but no registered residents (amber shape).
+   *  Only ever non-empty for a steward viewer — see ResidencesSection. */
+  notesOnlyResidenceIds?: string[]
   boundary: Feature<Polygon | MultiPolygon> | null
   /** Shaped address suggestions not yet added, mirrored from SuggestedAddresses — shown as a distinct preview layer. */
   previewSuggestions?: SuggestionPreview[]
@@ -176,7 +189,11 @@ export default function ResidencesOverviewMap({
   useEffect(() => {
     if (!containerRef.current) return
 
-    const featureCollection = toFeatureCollection(residences, new Set(occupiedResidenceIds))
+    const featureCollection = toFeatureCollection(
+      residences,
+      new Set(occupiedResidenceIds),
+      new Set(notesOnlyResidenceIds)
+    )
     // Normally there's a boundary or at least one shaped residence to frame on. The one exception
     // is bootstrapping a boundary-less community's very first shape via a draw/edit request (see
     // ResidencesSection's canShowMap) — nothing to frame yet, so fall back to a neutral world view
@@ -222,6 +239,8 @@ export default function ResidencesOverviewMap({
             'case',
             ['get', 'occupied'],
             OCCUPIED_COLOR,
+            ['get', 'notesOnly'],
+            NOTES_ONLY_COLOR,
             EMPTY_COLOR,
           ],
           'fill-opacity': 0.45,
@@ -236,6 +255,8 @@ export default function ResidencesOverviewMap({
             'case',
             ['get', 'occupied'],
             OCCUPIED_COLOR,
+            ['get', 'notesOnly'],
+            NOTES_ONLY_COLOR,
             EMPTY_COLOR,
           ],
           'line-width': 2,
@@ -316,8 +337,8 @@ export default function ResidencesOverviewMap({
     const map = mapRef.current
     const source = map?.getSource('residences') as maplibregl.GeoJSONSource | undefined
     if (!source) return
-    source.setData(toFeatureCollection(residences, new Set(occupiedResidenceIds)))
-  }, [residences, occupiedResidenceIds])
+    source.setData(toFeatureCollection(residences, new Set(occupiedResidenceIds), new Set(notesOnlyResidenceIds)))
+  }, [residences, occupiedResidenceIds, notesOnlyResidenceIds])
 
   // Same idea for suggestion previews — updates on every checkbox click, not just when
   // residences actually change.

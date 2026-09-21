@@ -455,6 +455,14 @@ export default function ResidencesSection({
           <ResidencesOverviewMap
             residences={entries.map((e) => e.residence)}
             occupiedResidenceIds={entries.filter((e) => e.residents.length > 0).map((e) => e.residence.id)}
+            // Mirrors the List's amber dot condition above — residence.stewardNotes is already
+            // redacted to null for a non-steward viewer, so this list is always empty for them
+            // regardless of the isSteward check (defense in depth, matching the dot).
+            notesOnlyResidenceIds={
+              isSteward
+                ? entries.filter((e) => e.residents.length === 0 && !!e.residence.stewardNotes).map((e) => e.residence.id)
+                : []
+            }
             boundary={blockBoundary}
             previewSuggestions={previewSuggestions}
             isSteward={isSteward}
