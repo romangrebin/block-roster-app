@@ -1,8 +1,8 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { MAX_TEXT } from '@/lib/validation'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
 
 /**
  * Adds one residence at a time — not a bulk paste box, so this pairs naturally with a future
@@ -10,37 +10,38 @@ import { MAX_TEXT } from '@/lib/validation'
  * attach a shape to any one line.
  */
 export default function AddResidencesForm({ blockId }: { blockId: string }) {
-  const router = useRouter()
+  const { isPending: submitting, saveAndRefresh } = useSaveAndRefresh()
   const inputRef = useRef<HTMLInputElement>(null)
   const [label, setLabel] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [justAdded, setJustAdded] = useState<string | null>(null)
 
-  const submit = async () => {
+  const submit = () => {
     const trimmed = label.trim()
     if (!trimmed) return
 
-    setSubmitting(true)
     setError(null)
     setJustAdded(null)
-    const res = await fetch(`/api/blocks/${blockId}/residences`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ labels: [trimmed] }),
-    })
-    const body = await res.json()
-    setSubmitting(false)
-
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to add residence')
-      return
-    }
-    setLabel('')
-    inputRef.current?.focus()
-    setJustAdded(trimmed)
-    setTimeout(() => setJustAdded(null), 2000)
-    router.refresh()
+    saveAndRefresh(
+      async () => {
+        const res = await fetch(`/api/blocks/${blockId}/residences`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ labels: [trimmed] }),
+        })
+        if (!res.ok) {
+          setError((await res.json()).error ?? 'Failed to add residence')
+          return false
+        }
+        setLabel('')
+        inputRef.current?.focus()
+        return true
+      },
+      () => {
+        setJustAdded(trimmed)
+        setTimeout(() => setJustAdded(null), 2000)
+      }
+    )
   }
 
   return (

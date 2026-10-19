@@ -4,6 +4,8 @@ import { useState } from 'react'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import ResidenceMapPicker from './ResidenceMapPicker'
+import ResidentProfileFields from './ResidentProfileFields'
+import { EMPTY_PROFILE } from '@/lib/residentProfile'
 import { MAX_TEXT } from '@/lib/validation'
 import CharCount from './CharCount'
 import type { CanvasType, ContactVisibility } from '@/lib/types'
@@ -35,14 +37,10 @@ type ResidenceOption = { id: string; label: string; nickname: string | null; sha
 /**
  * Resident self-registration: pick a residence (by tapping the map, if any residence has a
  * drawn shape — the plain-list dropdown is always shown too, as the guaranteed fallback for
- * residences without one yet), give a name + blurb + email (+ optional phone), confirm by
+ * residences without one yet), give a name + email (+ optional phone, blurb, and profile
+ * prompts), confirm by
  * tapping the emailed link — app/[code]/complete is where that link lands and finishes it. Phone
  * is unverified/informational only — no phone-OTP path exists yet.
- *
- * The blurb is required here (unlike editing it later via My Info, which is optional) — besides
- * being the "something about you" neighbors see, it's the one piece of free text a steward has
- * to help judge a pending registration before approving it (see resident.blurb's unconditional
- * display in ResidencesSection's resident cards, right next to Approve).
  *
  * If the visitor is already signed in, `signedInEmail` skips asking for an email at all — a
  * prior magic link already proved they control that inbox, so there's nothing left for another
@@ -53,11 +51,13 @@ type ResidenceOption = { id: string; label: string; nickname: string | null; sha
 export default function ResidentIntakeForm({
   code,
   residences,
+  boundary,
   canvasType,
   signedInEmail,
 }: {
   code: string
   residences: ResidenceOption[]
+  boundary: Feature<Polygon | MultiPolygon> | null
   canvasType: CanvasType
   signedInEmail?: string | null
 }) {
@@ -68,6 +68,7 @@ export default function ResidentIntakeForm({
   const [residenceId, setResidenceId] = useState('')
   const [name, setName] = useState('')
   const [blurb, setBlurb] = useState('')
+  const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [email, setEmail] = useState(signedInEmail ?? '')
   const [emailVisibility, setEmailVisibility] = useState<ContactVisibility>('block_wide')
   const [phone, setPhone] = useState('')
@@ -79,7 +80,7 @@ export default function ResidentIntakeForm({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!residenceId || !name.trim() || !blurb.trim() || !email.trim()) return
+    if (!residenceId || !name.trim() || !email.trim()) return
     setSubmitting(true)
     setError(null)
 
@@ -89,6 +90,7 @@ export default function ResidentIntakeForm({
       body: JSON.stringify({
         name: name.trim(),
         blurb: blurb.trim(),
+        profile,
         email: email.trim(),
         emailVisibility,
         phone: phone.trim(),
@@ -163,7 +165,7 @@ export default function ResidentIntakeForm({
         <div className="space-y-1.5">
           <p className="text-sm text-muted">Tap your house on the map, or pick from the list below.</p>
           <div className="h-72 rounded-xl overflow-hidden border border-border">
-            <ResidenceMapPicker residences={shapedResidences} selectedId={residenceId} onSelect={setResidenceId} />
+            <ResidenceMapPicker residences={shapedResidences} boundary={boundary} selectedId={residenceId} onSelect={setResidenceId} />
           </div>
         </div>
       )}
@@ -196,21 +198,6 @@ export default function ResidentIntakeForm({
           autoFocus
           className={inputClass}
         />
-      </div>
-      <div>
-        <label className="block text-base font-medium text-ink mb-1.5">
-          About you <span className="text-muted font-normal">(shown to your neighbors)</span>
-        </label>
-        <textarea
-          value={blurb}
-          onChange={(e) => setBlurb(e.target.value)}
-          maxLength={MAX_TEXT.blurb}
-          rows={2}
-          placeholder="Something simple your neighbors could know about you, something you love about where you live, or someplace you love near your home"
-          required
-          className={inputClass}
-        />
-        <CharCount value={blurb} max={MAX_TEXT.blurb} />
       </div>
       <div>
         <div className="flex items-center justify-between gap-3 mb-1.5">
@@ -259,10 +246,29 @@ export default function ResidentIntakeForm({
           className={inputClass}
         />
       </div>
-      {error && <p className="text-base text-red-600">{error}</p>}
+      <div className="space-y-4 border-t border-border pt-4">
+        <p className="text-base font-medium text-ink">
+          Help your neighbors get to know you{' '}
+          <span className="text-muted font-normal">(all optional, shown to your neighbors)</span>
+        </p>
+        <div>
+          <label className="block text-base font-medium text-ink mb-1.5">About you</label>
+          <textarea
+            value={blurb}
+            onChange={(e) => setBlurb(e.target.value)}
+            maxLength={MAX_TEXT.blurb}
+            rows={2}
+            placeholder="e.g. who's in your household, pets and their names, what you do"
+            className={inputClass}
+          />
+          <CharCount value={blurb} max={MAX_TEXT.blurb} />
+        </div>
+        <ResidentProfileFields profile={profile} onChange={setProfile} />
+      </div>
+      {error &&<p className="text-base text-red-600">{error}</p>}
       <button
         type="submit"
-        disabled={!residenceId || !name.trim() || !blurb.trim() || !email.trim() || submitting}
+        disabled={!residenceId || !name.trim() || !email.trim() || submitting}
         className="w-full bg-accent text-white py-3 rounded-full text-base font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]"
       >
         {submitting ? 'Sending link…' : 'Register'}

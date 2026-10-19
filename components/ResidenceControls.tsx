@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import { MAX_TEXT } from '@/lib/validation'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
 
 const inputClass =
   'w-full border border-border rounded-lg px-2.5 py-1 text-base font-medium text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent'
@@ -36,10 +36,11 @@ export default function ResidenceControls({
   shapeEditActive?: boolean
   onShapeEditCommand?: (action: 'save' | 'cancel') => void
 }) {
-  const router = useRouter()
+  const { isPending, saveAndRefresh } = useSaveAndRefresh()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(label)
-  const [submitting, setSubmitting] = useState(false)
+  const [renamingBeforeShapeSave, setRenamingBeforeShapeSave] = useState(false)
+  const submitting = isPending || renamingBeforeShapeSave
   const [error, setError] = useState<string | null>(null)
 
   const cancel = () => {
@@ -52,44 +53,43 @@ export default function ResidenceControls({
   const handleSave = async () => {
     const trimmed = value.trim()
     if (!trimmed) return
-    setSubmitting(true)
     setError(null)
-    if (trimmed !== label) {
+
+    const renameIfChanged = async () => {
+      if (trimmed === label) return true
       const res = await fetch(`/api/residences/${residenceId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label: trimmed }),
       })
-      const body = await res.json()
-      if (!res.ok) {
-        setSubmitting(false)
-        setError(body.error ?? 'Failed to rename')
-        return
-      }
+      if (!res.ok) setError((await res.json()).error ?? 'Failed to rename')
+      return res.ok
     }
-    setSubmitting(false)
+
+    if (!shapeEditActive) {
+      saveAndRefresh(renameIfChanged, () => setEditing(false))
+      return
+    }
+
+    // Hand off to the map's own PATCH+refresh (ResidencesOverviewMap's editShapeCommand
+    // effect) instead of refreshing here too — refreshing immediately raced against that
+    // PATCH actually landing, so the page kept re-fetching pre-save data while the map had
+    // already cleared its drawn feature, and the shape never visibly came back.
+    setRenamingBeforeShapeSave(true)
+    const renamed = await renameIfChanged()
+    setRenamingBeforeShapeSave(false)
+    if (!renamed) return
     setEditing(false)
-    if (shapeEditActive) {
-      // Hand off to the map's own PATCH+refresh (ResidencesOverviewMap's editShapeCommand
-      // effect) instead of refreshing here too — refreshing immediately raced against that
-      // PATCH actually landing, so the page kept re-fetching pre-save data while the map had
-      // already cleared its drawn feature, and the shape never visibly came back.
-      onShapeEditCommand?.('save')
-    } else {
-      router.refresh()
-    }
+    onShapeEditCommand?.('save')
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     const warning =
       residentCount > 0
         ? `Delete "${label}"? This also removes its ${residentCount} resident${residentCount === 1 ? '' : 's'}. This cannot be undone.`
         : `Delete "${label}"? This cannot be undone.`
     if (!confirm(warning)) return
-    setSubmitting(true)
-    const res = await fetch(`/api/residences/${residenceId}`, { method: 'DELETE' })
-    setSubmitting(false)
-    if (res.ok) router.refresh()
+    saveAndRefresh(async () => (await fetch(`/api/residences/${residenceId}`, { method: 'DELETE' })).ok)
   }
 
   if (editing) {

@@ -5,6 +5,7 @@ import type {
   ResidenceInput,
   Resident,
   ResidentInput,
+  ResidentProfile,
   ContactMethod,
   ContactMethodInput,
   Steward,
@@ -56,6 +57,7 @@ export interface ResidentRepository {
   moveOut(id: string): Promise<Resident>
   setName(id: string, name: string): Promise<Resident>
   setBlurb(id: string, blurb: string | null): Promise<Resident>
+  setProfile(id: string, profile: ResidentProfile): Promise<Resident>
   delete(id: string): Promise<void>
 }
 

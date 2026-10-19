@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { MAX_TEXT } from '@/lib/validation'
 import CharCount from './CharCount'
@@ -37,6 +37,9 @@ export default function BlockContentForm({
   autoApproveJoins: boolean
 }) {
   const router = useRouter()
+  // Same transition pattern as useSaveAndRefresh, inlined because a code change navigates
+  // instead of refreshing.
+  const [saving, startTransition] = useTransition()
   const [name, setName] = useState(initialName)
   const [code, setCode] = useState(initialCode)
   const [publicBlurb, setPublicBlurb] = useState(initialPublicBlurb ?? '')
@@ -44,7 +47,6 @@ export default function BlockContentForm({
   const [residentExportEnabled, setResidentExportEnabled] = useState(initialResidentExportEnabled)
   const [lendingLibraryEnabled, setLendingLibraryEnabled] = useState(initialLendingLibraryEnabled)
   const [autoApproveJoins, setAutoApproveJoins] = useState(initialAutoApproveJoins)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -57,45 +59,45 @@ export default function BlockContentForm({
     lendingLibraryEnabled !== initialLendingLibraryEnabled ||
     autoApproveJoins !== initialAutoApproveJoins
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !code.trim()) return
-    setSaving(true)
     setError(null)
     setSaved(false)
 
-    const res = await fetch(`/api/blocks/${blockId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: name.trim(),
-        code: code.trim(),
-        publicBlurb,
-        privateNotes,
-        residentExportEnabled,
-        lendingLibraryEnabled,
-        autoApproveJoins,
-      }),
+    startTransition(async () => {
+      const res = await fetch(`/api/blocks/${blockId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          code: code.trim(),
+          publicBlurb,
+          privateNotes,
+          residentExportEnabled,
+          lendingLibraryEnabled,
+          autoApproveJoins,
+        }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setError(body.error ?? 'Failed to save')
+        return
+      }
+      startTransition(() => {
+        setName(body.block.name)
+        setCode(body.block.code)
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+        if (body.block.code !== initialCode) {
+          // The page itself lives at /<old-code> — a refresh alone would leave every link (and a
+          // reload of this very page) pointing at a URL that 404s now that the DB code changed.
+          router.push(`/${body.block.code}`)
+        } else {
+          router.refresh()
+        }
+      })
     })
-    const body = await res.json()
-    setSaving(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to save')
-      return
-    }
-    const codeChanged = body.block.code !== initialCode
-    setName(body.block.name)
-    setCode(body.block.code)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-
-    if (codeChanged) {
-      // The page itself lives at /<old-code> — a refresh alone would leave every link (and a
-      // reload of this very page) pointing at a URL that 404s now that the DB code changed.
-      router.push(`/${body.block.code}`)
-    } else {
-      router.refresh()
-    }
   }
 
   return (
@@ -192,7 +194,7 @@ export default function BlockContentForm({
         <span className="text-base text-ink">
           Auto-approve new joiners{' '}
           <span className="text-muted font-normal">
-            (skips the approval step — you&apos;ll still get an email every time someone joins)
+            (useful for when expecting joiners. Skips the approval step — you&apos;ll still get an email every time someone joins)
           </span>
         </span>
       </label>

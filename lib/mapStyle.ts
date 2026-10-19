@@ -1,4 +1,5 @@
 import * as turf from '@turf/turf'
+import type { Map as MaplibreMap } from 'maplibre-gl'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 
 // CARTO started enforcing an API key on its public basemap CDN around Aug 2026 — a keyless
@@ -33,6 +34,31 @@ export const BASEMAP_STYLE = {
 // since these aren't real residences yet. Checked (about to be added) is bolder than suggested.
 export const PREVIEW_UNSELECTED = '#93c5fd'
 export const PREVIEW_SELECTED = '#2563eb'
+
+const BOUNDARY_COLOR = '#231f1a' // --color-ink
+
+/**
+ * Faintly grays out everything outside the community and outlines its edge. Call before adding
+ * residence layers so they draw on top.
+ */
+export function addCommunityBoundaryLayers(map: MaplibreMap, boundary: Feature<Polygon | MultiPolygon>) {
+  // MapLibre tells holes from outer rings by winding order, which turf.mask doesn't guarantee.
+  const outsideCommunity = turf.rewind(turf.mask(boundary))
+  map.addSource('community-outside', { type: 'geojson', data: outsideCommunity })
+  map.addLayer({
+    id: 'community-outside',
+    type: 'fill',
+    source: 'community-outside',
+    paint: { 'fill-color': BOUNDARY_COLOR, 'fill-opacity': 0.18 },
+  })
+  map.addSource('community-boundary', { type: 'geojson', data: boundary })
+  map.addLayer({
+    id: 'community-boundary',
+    type: 'line',
+    source: 'community-boundary',
+    paint: { 'line-color': BOUNDARY_COLOR, 'line-width': 1.5, 'line-opacity': 0.5, 'line-dasharray': [3, 2] },
+  })
+}
 
 /** A small buffer around a polygon's bbox — enough room to see its edges without free-roaming past them. */
 export function boundsOf(

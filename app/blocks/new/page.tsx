@@ -15,6 +15,10 @@ export default async function NewBlockPage() {
 
   return (
     <PageContainer className="space-y-6">
+      <p className="bg-accent-soft text-accent-soft-ink text-sm rounded-2xl px-4 py-3">
+        <strong>Heads up:</strong> this setup flow hasn&apos;t been updated in a while and may be rough
+        around the edges. Everything still works, but expect a few quirks.
+      </p>
       <div>
         <h1 className="text-3xl font-semibold text-ink">Create a community</h1>
         <p className="text-lg text-muted mt-2">

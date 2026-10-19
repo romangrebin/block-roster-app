@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
 import { ITEM_CATEGORIES, ITEM_CATEGORY_LABEL, type ItemCategory } from '@/lib/types'
 import { MAX_TEXT } from '@/lib/validation'
 import CharCount from './CharCount'
@@ -9,35 +9,33 @@ import CharCount from './CharCount'
 /** Adds one item at a time to the caller's own Lending Library listing — same one-at-a-time
  * pattern as AddResidencesForm, for the same reason: no bulk-paste complexity for a v1 feature. */
 export default function AddItemForm({ blockId }: { blockId: string }) {
-  const router = useRouter()
+  const { isPending: submitting, saveAndRefresh } = useSaveAndRefresh()
   const nameRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState<ItemCategory>('other')
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const submit = async () => {
+  const submit = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    setSubmitting(true)
     setError(null)
-    const res = await fetch(`/api/blocks/${blockId}/items`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmed, description: description.trim(), category }),
+    saveAndRefresh(async () => {
+      const res = await fetch(`/api/blocks/${blockId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed, description: description.trim(), category }),
+      })
+      if (!res.ok) {
+        setError((await res.json()).error ?? 'Failed to add item')
+        return false
+      }
+      setName('')
+      setDescription('')
+      setCategory('other')
+      nameRef.current?.focus()
+      return true
     })
-    const body = await res.json()
-    setSubmitting(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to add item')
-      return
-    }
-    setName('')
-    setDescription('')
-    setCategory('other')
-    nameRef.current?.focus()
-    router.refresh()
   }
 
   return (

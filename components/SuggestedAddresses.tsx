@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import {
   suggestAddressesWithinBoundary,
@@ -32,12 +32,11 @@ export default function SuggestedAddresses({
   /** Mirrors shaped suggestions (+ their checked state) up to the Residences map, so it can preview them. */
   onPreviewChange?: (preview: SuggestionPreview[]) => void
 }) {
-  const router = useRouter()
+  const { isPending: submitting, saveAndRefresh } = useSaveAndRefresh()
   const [status, setStatus] = useState<Status>('idle')
   const [suggestions, setSuggestions] = useState<SuggestedAddress[]>([])
   const [truncatedFrom, setTruncatedFrom] = useState<number | null>(null)
   const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set())
-  const [submitting, setSubmitting] = useState(false)
 
   const handleSearch = () => {
     setStatus('loading')
@@ -92,40 +91,42 @@ export default function SuggestedAddresses({
     setSelectedLabels(allSelected ? new Set() : new Set(visible.map((s) => s.label)))
   }
 
-  const handleAddSelected = async () => {
+  const handleAddSelected = () => {
     const toAdd = visible.filter((s) => selectedLabels.has(s.label))
     if (toAdd.length === 0) return
-    setSubmitting(true)
 
-    const res = await fetch(`/api/blocks/${blockId}/residences`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ labels: toAdd.map((s) => s.label) }),
-    })
-    const body = await res.json()
-
-    if (res.ok) {
-      // Created in the same order the labels were sent, so index-matching back to toAdd is safe.
-      await Promise.all(
-        (body.residences as { id: string }[]).map((residence, i) => {
-          const shape = toAdd[i].shape
-          if (!shape) return null
-          return fetch(`/api/residences/${residence.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ shape }),
-          })
+    saveAndRefresh(
+      async () => {
+        const res = await fetch(`/api/blocks/${blockId}/residences`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ labels: toAdd.map((s) => s.label) }),
         })
-      )
-    }
+        const body = await res.json()
 
-    setSubmitting(false)
-    setSelectedLabels((prev) => {
-      const next = new Set(prev)
-      for (const s of toAdd) next.delete(s.label)
-      return next
-    })
-    router.refresh()
+        if (res.ok) {
+          // Created in the same order the labels were sent, so index-matching back to toAdd is safe.
+          await Promise.all(
+            (body.residences as { id: string }[]).map((residence, i) => {
+              const shape = toAdd[i].shape
+              if (!shape) return null
+              return fetch(`/api/residences/${residence.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shape }),
+              })
+            })
+          )
+        }
+        return true
+      },
+      () =>
+        setSelectedLabels((prev) => {
+          const next = new Set(prev)
+          for (const s of toAdd) next.delete(s.label)
+          return next
+        })
+    )
   }
 
   if (status === 'idle') {

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { MAX_TEXT } from '@/lib/validation'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
 import CharCount from './CharCount'
 
 /**
@@ -18,29 +18,28 @@ export default function ResidenceStewardNotes({
   residenceId: string
   notes: string | null
 }) {
-  const router = useRouter()
+  const { isPending: saving, saveAndRefresh } = useSaveAndRefresh()
   const [notes, setNotes] = useState(initialNotes ?? '')
-  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSave = async () => {
-    setSaving(true)
+  const handleSave = () => {
     setError(null)
-    const res = await fetch(`/api/residences/${residenceId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stewardNotes: notes }),
-    })
-    const body = await res.json()
-    setSaving(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to save')
-      return
-    }
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-    router.refresh()
+    saveAndRefresh(
+      async () => {
+        const res = await fetch(`/api/residences/${residenceId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stewardNotes: notes }),
+        })
+        if (!res.ok) setError((await res.json()).error ?? 'Failed to save')
+        return res.ok
+      },
+      () => {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      }
+    )
   }
 
   return (

@@ -94,12 +94,21 @@ export type Resident = {
   blurb: string | null
   createdAt: string
   updatedAt: string | null
+} & ResidentProfile
+
+/** Optional sign-up prompts, block-wide like blurb. Labels/placeholders: lib/residentProfile.ts. */
+export type ResidentProfile = {
+  movedInYear: number | null
+  favoriteSpot: string | null
+  countMeInFor: string | null
+  askMeAbout: string | null
 }
 
 export type ResidentInput = {
   residenceId: string
   name: string
   blurb?: string | null
+  profile?: ResidentProfile
 }
 
 export type ContactMethodType = 'phone' | 'email'

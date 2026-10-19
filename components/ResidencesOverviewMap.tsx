@@ -10,7 +10,7 @@ import * as turf from '@turf/turf'
 import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson'
 import type { Residence } from '@/lib/types'
 import type { SuggestionPreview } from '@/lib/overpass'
-import { BASEMAP_STYLE, boundsOf, PREVIEW_SELECTED, PREVIEW_UNSELECTED } from '@/lib/mapStyle'
+import { addCommunityBoundaryLayers, BASEMAP_STYLE, boundsOf, PREVIEW_SELECTED, PREVIEW_UNSELECTED } from '@/lib/mapStyle'
 import { MAX_TEXT } from '@/lib/validation'
 
 // Green where someone's registered, gray where nobody is — no third "moved out" state; a
@@ -229,6 +229,7 @@ export default function ResidencesOverviewMap({
 
     map.once('load', () => {
       if (unmounted) return
+      if (boundary) addCommunityBoundaryLayers(map, boundary)
       map.addSource('residences', { type: 'geojson', data: featureCollection })
       map.addLayer({
         id: 'residences-fill',

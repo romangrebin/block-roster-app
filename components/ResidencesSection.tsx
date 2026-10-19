@@ -13,6 +13,7 @@ import ResidenceControls from './ResidenceControls'
 import ResidenceNicknameEditor from './ResidenceNicknameEditor'
 import ResidenceStewardNotes from './ResidenceStewardNotes'
 import ResidencesOverviewMap, { type EditShapeRequest, type EditShapeCommand, type MapMode } from './ResidencesOverviewMap'
+import { TEXT_PROMPTS } from '@/lib/residentProfile'
 
 type ResidentRow = { resident: Resident; contacts: ContactMethod[] }
 type Entry = { residence: Residence; residents: ResidentRow[] }
@@ -352,6 +353,16 @@ export default function ResidencesSection({
           {phone && <span className="text-sm text-muted"> · {phone.value}</span>}
           {resident.blurb && (
             <span className="block text-sm text-muted italic mt-0.5">{resident.blurb}</span>
+          )}
+          {resident.movedInYear && (
+            <span className="block text-sm text-muted mt-0.5">Here since {resident.movedInYear}</span>
+          )}
+          {TEXT_PROMPTS.map(({ key, label }) =>
+            resident[key] ? (
+              <span key={key} className="block text-sm text-muted mt-0.5 break-words">
+                <span className="font-medium text-ink">{label.replace('…', '')}:</span> {resident[key]}
+              </span>
+            ) : null
           )}
         </div>
         {isSteward && resident.status === 'pending' && email?.verifiedAt && (

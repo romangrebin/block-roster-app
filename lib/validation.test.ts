@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cappedText, escapeHtml, MAX_TEXT } from './validation'
+import { cappedText, escapeHtml, MAX_TEXT, parseProfile } from './validation'
 
 describe('cappedText', () => {
   it('trims surrounding whitespace', () => {
@@ -41,5 +41,26 @@ describe('escapeHtml', () => {
     expect(escapeHtml('<img src=x onerror=alert(1)>')).toBe(
       '&lt;img src=x onerror=alert(1)&gt;'
     )
+  })
+})
+
+describe('parseProfile', () => {
+  it('keeps valid values, trimmed', () => {
+    expect(parseProfile({ movedInYear: '2014', favoriteSpot: ' the park ', countMeInFor: 'walks', askMeAbout: 'bikes' })).toEqual({
+      movedInYear: 2014,
+      favoriteSpot: 'the park',
+      countMeInFor: 'walks',
+      askMeAbout: 'bikes',
+    })
+  })
+
+  it('turns blanks, junk, and out-of-range years into null', () => {
+    const empty = { movedInYear: null, favoriteSpot: null, countMeInFor: null, askMeAbout: null }
+    expect(parseProfile({})).toEqual(empty)
+    expect(parseProfile(undefined)).toEqual(empty)
+    expect(parseProfile({ movedInYear: '', favoriteSpot: '   ', countMeInFor: 42 })).toEqual(empty)
+    expect(parseProfile({ movedInYear: 1800 }).movedInYear).toBeNull()
+    expect(parseProfile({ movedInYear: new Date().getFullYear() + 1 }).movedInYear).toBeNull()
+    expect(parseProfile({ movedInYear: 2014.5 }).movedInYear).toBeNull()
   })
 })

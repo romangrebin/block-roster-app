@@ -15,6 +15,7 @@ import type {
   Residence,
   Resident,
   ResidentInput,
+  ResidentProfile,
   ContactMethod,
   ContactMethodInput,
   Steward,
@@ -66,6 +67,10 @@ type ResidentRow = {
   approved_by: string | null
   approved_at: string | null
   blurb: string | null
+  moved_in_year: number | null
+  favorite_spot: string | null
+  count_me_in_for: string | null
+  ask_me_about: string | null
   created_at: string
   updated_at: string | null
 }
@@ -144,8 +149,21 @@ function toResident(row: ResidentRow): Resident {
     approvedBy: row.approved_by,
     approvedAt: row.approved_at,
     blurb: row.blurb,
+    movedInYear: row.moved_in_year,
+    favoriteSpot: row.favorite_spot,
+    countMeInFor: row.count_me_in_for,
+    askMeAbout: row.ask_me_about,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  }
+}
+
+function toProfileRow(profile: ResidentProfile) {
+  return {
+    moved_in_year: profile.movedInYear,
+    favorite_spot: profile.favoriteSpot,
+    count_me_in_for: profile.countMeInFor,
+    ask_me_about: profile.askMeAbout,
   }
 }
 
@@ -326,7 +344,12 @@ function createResidentRepository(client: SupabaseClient): ResidentRepository {
     async create(input: ResidentInput) {
       const { data, error } = await client
         .from('residents')
-        .insert({ residence_id: input.residenceId, name: input.name, blurb: input.blurb ?? null })
+        .insert({
+          residence_id: input.residenceId,
+          name: input.name,
+          blurb: input.blurb ?? null,
+          ...(input.profile && toProfileRow(input.profile)),
+        })
         .select()
         .single()
       return toResident(requireNoError(data as ResidentRow | null, error, 'residents.create'))
@@ -404,6 +427,15 @@ function createResidentRepository(client: SupabaseClient): ResidentRepository {
         .select()
         .single()
       return toResident(requireNoError(data as ResidentRow | null, error, 'residents.setBlurb'))
+    },
+    async setProfile(id, profile) {
+      const { data, error } = await client
+        .from('residents')
+        .update({ ...toProfileRow(profile), updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+      return toResident(requireNoError(data as ResidentRow | null, error, 'residents.setProfile'))
     },
     async delete(id) {
       const { error } = await client.from('residents').delete().eq('id', id)

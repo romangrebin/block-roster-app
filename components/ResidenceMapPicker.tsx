@@ -5,7 +5,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as turf from '@turf/turf'
 import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson'
-import { BASEMAP_STYLE } from '@/lib/mapStyle'
+import { addCommunityBoundaryLayers, BASEMAP_STYLE } from '@/lib/mapStyle'
 
 export type ShapedResidence = { id: string; label: string; shape: Feature<Polygon | MultiPolygon> }
 
@@ -19,10 +19,12 @@ const SELECTED_FILL = '#7a3319'
  */
 export default function ResidenceMapPicker({
   residences,
+  boundary,
   selectedId,
   onSelect,
 }: {
   residences: ShapedResidence[]
+  boundary: Feature<Polygon | MultiPolygon> | null
   selectedId: string
   onSelect: (id: string) => void
 }) {
@@ -62,6 +64,7 @@ export default function ResidenceMapPicker({
 
     map.once('load', () => {
       if (unmounted) return
+      if (boundary) addCommunityBoundaryLayers(map, boundary)
       map.addSource('residences', { type: 'geojson', data: featureCollection })
       map.addLayer({
         id: 'residences-fill',

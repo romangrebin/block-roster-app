@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { MAX_TEXT } from '@/lib/validation'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
 
 /**
  * A friendlier, resident-set name for a residence, separate from the steward-owned official
@@ -17,10 +17,9 @@ export default function ResidenceNicknameEditor({
   residenceId: string
   nickname: string | null
 }) {
-  const router = useRouter()
+  const { isPending: submitting, saveAndRefresh } = useSaveAndRefresh()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(nickname ?? '')
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const cancel = () => {
@@ -29,22 +28,20 @@ export default function ResidenceNicknameEditor({
     setError(null)
   }
 
-  const handleSave = async () => {
-    setSubmitting(true)
+  const handleSave = () => {
     setError(null)
-    const res = await fetch(`/api/residences/${residenceId}/nickname`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: value.trim() }),
-    })
-    const body = await res.json()
-    setSubmitting(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to save')
-      return
-    }
-    setEditing(false)
-    router.refresh()
+    saveAndRefresh(
+      async () => {
+        const res = await fetch(`/api/residences/${residenceId}/nickname`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname: value.trim() }),
+        })
+        if (!res.ok) setError((await res.json()).error ?? 'Failed to save')
+        return res.ok
+      },
+      () => setEditing(false)
+    )
   }
 
   if (editing) {
@@ -71,7 +68,7 @@ export default function ResidenceNicknameEditor({
           disabled={submitting}
           className="text-sm text-accent font-medium cursor-pointer disabled:opacity-40 shrink-0"
         >
-          Save
+          {submitting ? 'Saving…' : 'Save'}
         </button>
         <button onClick={cancel} className="text-sm text-muted cursor-pointer shrink-0">
           Cancel

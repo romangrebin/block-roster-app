@@ -2,7 +2,7 @@ import { getRepository } from './db'
 import { createSupabaseAdminClient } from './supabase-admin'
 import { sendEmail } from './email'
 import { escapeHtml } from './validation'
-import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Resident, Steward } from './types'
+import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Resident, ResidentProfile, Steward } from './types'
 
 /**
  * Cross-table invariants that no single repository method can enforce alone (see
@@ -19,10 +19,8 @@ export async function createBlock(input: BlockInput, founderUserId: string): Pro
 export async function registerResident(
   residenceId: string,
   name: string,
-  // Required at registration (not just editable later via My Info) — besides being the
-  // "something about you" neighbors see, it's the one piece of free text a steward has to help
-  // judge whether a pending registration is a real neighbor before approving them.
-  blurb: string,
+  blurb: string | null,
+  profile: ResidentProfile,
   contact: { type: ContactMethod['type']; value: string; visibility?: ContactVisibility },
   // Never verified — no phone-OTP path exists yet (needs a paid SMS vendor, deliberately not
   // chosen). Stored purely as steward-visible info alongside the verified contact above.
@@ -32,7 +30,7 @@ export async function registerResident(
   const residence = await repo.residences.getById(residenceId)
   if (!residence) throw new Error('registerResident: residence not found')
 
-  const resident = await repo.residents.create({ residenceId, name, blurb })
+  const resident = await repo.residents.create({ residenceId, name, blurb, profile })
   const contactMethod = await repo.contactMethods.create({
     residentId: resident.id,
     type: contact.type,

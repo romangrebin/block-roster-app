@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import type { ContactMethod, Item } from '@/lib/types'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
 import { ITEM_CATEGORY_LABEL } from '@/lib/types'
 import AddItemForm from './AddItemForm'
 
@@ -29,25 +29,23 @@ export default function LendingLibrarySection({
   items: LibraryItem[]
   viewerResidentId: string | null
 }) {
-  const router = useRouter()
+  const { isPending, saveAndRefresh } = useSaveAndRefresh()
   const [view, setView] = useState<'browse' | 'mine'>('browse')
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [lastRemovedId, setLastRemovedId] = useState<string | null>(null)
+  const deletingId = isPending ? lastRemovedId : null
   const [error, setError] = useState<string | null>(null)
 
   const myItems = items.filter(({ item }) => item.residentId === viewerResidentId)
 
-  const handleRemove = async (itemId: string) => {
+  const handleRemove = (itemId: string) => {
     if (!confirm('Remove this item from the Lending Library?')) return
-    setDeletingId(itemId)
+    setLastRemovedId(itemId)
     setError(null)
-    const res = await fetch(`/api/items/${itemId}`, { method: 'DELETE' })
-    setDeletingId(null)
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to remove item')
-      return
-    }
-    router.refresh()
+    saveAndRefresh(async () => {
+      const res = await fetch(`/api/items/${itemId}`, { method: 'DELETE' })
+      if (!res.ok) setError((await res.json()).error ?? 'Failed to remove item')
+      return res.ok
+    })
   }
 
   const visible = view === 'mine' ? myItems : items

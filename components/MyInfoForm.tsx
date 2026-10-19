@@ -1,10 +1,44 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import type { ContactMethod } from '@/lib/types'
+import { useOptimistic, useState } from 'react'
+import type { ContactMethod, ResidentProfile } from '@/lib/types'
 import { MAX_TEXT } from '@/lib/validation'
 import CharCount from './CharCount'
+import ResidentProfileFields from './ResidentProfileFields'
+import { useSaveAndRefresh } from './useSaveAndRefresh'
+
+/** Shows the new choice immediately (useOptimistic) rather than snapping back to the old one
+ * until the refreshed page data arrives. Reverts on its own if the save fails. */
+function VisibilitySelect({ contact, onError }: { contact: ContactMethod; onError: (error: string | null) => void }) {
+  const { isPending, saveAndRefresh } = useSaveAndRefresh()
+  const [visibility, setOptimisticVisibility] = useOptimistic(contact.visibility)
+
+  const handleChange = (next: ContactMethod['visibility']) => {
+    onError(null)
+    saveAndRefresh(async () => {
+      setOptimisticVisibility(next)
+      const res = await fetch(`/api/contact-methods/${contact.id}/visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibility: next }),
+      })
+      if (!res.ok) onError((await res.json()).error ?? 'Failed to update visibility')
+      return res.ok
+    })
+  }
+
+  return (
+    <select
+      value={visibility}
+      onChange={(e) => handleChange(e.target.value as ContactMethod['visibility'])}
+      disabled={isPending}
+      className="text-sm border border-border rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+    >
+      <option value="block_wide">Visible to neighbors</option>
+      <option value="steward_only">Visible to steward only</option>
+    </select>
+  )
+}
 
 /**
  * A signed-in approved resident's own settings: their freeform blurb (always visible to
@@ -16,104 +50,85 @@ export default function MyInfoForm({
   residentId,
   name: initialName,
   blurb: initialBlurb,
+  profile: initialProfile,
   contacts,
 }: {
   residentId: string
   name: string
   blurb: string | null
+  profile: ResidentProfile
   contacts: ContactMethod[]
 }) {
-  const router = useRouter()
+  const { isPending: savingName, saveAndRefresh: saveName } = useSaveAndRefresh()
+  const { isPending: savingBlurb, saveAndRefresh: saveBlurb } = useSaveAndRefresh()
+  const { isPending: savingProfile, saveAndRefresh: saveProfile } = useSaveAndRefresh()
+  const { isPending: addingPhone, saveAndRefresh: savePhone } = useSaveAndRefresh()
+  const { isPending: savingPhoneEdit, saveAndRefresh: savePhoneEdit } = useSaveAndRefresh()
   const [name, setName] = useState(initialName)
-  const [savingName, setSavingName] = useState(false)
   const [nameSaved, setNameSaved] = useState(false)
   const [blurb, setBlurb] = useState(initialBlurb ?? '')
-  const [savingBlurb, setSavingBlurb] = useState(false)
   const [blurbSaved, setBlurbSaved] = useState(false)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [profile, setProfile] = useState(initialProfile)
+  const [profileSaved, setProfileSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [phoneValue, setPhoneValue] = useState('')
   const [phoneVisibility, setPhoneVisibility] = useState<ContactMethod['visibility']>('block_wide')
-  const [addingPhone, setAddingPhone] = useState(false)
   const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null)
   const [phoneEditValue, setPhoneEditValue] = useState('')
-  const [savingPhoneEdit, setSavingPhoneEdit] = useState(false)
 
-  const handleSaveName = async () => {
+  /** PATCH/POST a JSON body; on failure shows the server's error (or the fallback) and returns false. */
+  const send = async (url: string, method: 'PATCH' | 'POST', body: object, errorFallback: string) => {
+    setError(null)
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) setError((await res.json()).error ?? errorFallback)
+    return res.ok
+  }
+
+  const flashSaved = (setSaved: (saved: boolean) => void) => {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleSaveName = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    setSavingName(true)
-    setError(null)
-    const res = await fetch(`/api/residents/${residentId}/name`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    })
-    const body = await res.json()
-    setSavingName(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to save')
-      return
-    }
-    setNameSaved(true)
-    setTimeout(() => setNameSaved(false), 2000)
-    router.refresh()
+    saveName(
+      () => send(`/api/residents/${residentId}/name`, 'PATCH', { name: trimmed }, 'Failed to save'),
+      () => flashSaved(setNameSaved)
+    )
   }
 
-  const handleSaveBlurb = async () => {
-    setSavingBlurb(true)
-    setError(null)
-    const res = await fetch(`/api/residents/${residentId}/blurb`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ blurb }),
-    })
-    const body = await res.json()
-    setSavingBlurb(false)
-    if (!res.ok) {
-      setError(body.error ?? 'Failed to save')
-      return
-    }
-    setBlurbSaved(true)
-    setTimeout(() => setBlurbSaved(false), 2000)
-    router.refresh()
+  const handleSaveBlurb = () => {
+    saveBlurb(
+      () => send(`/api/residents/${residentId}/blurb`, 'PATCH', { blurb }, 'Failed to save'),
+      () => flashSaved(setBlurbSaved)
+    )
   }
 
-  const handleToggleVisibility = async (contactMethodId: string, next: ContactMethod['visibility']) => {
-    setTogglingId(contactMethodId)
-    setError(null)
-    const res = await fetch(`/api/contact-methods/${contactMethodId}/visibility`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visibility: next }),
-    })
-    setTogglingId(null)
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to update visibility')
-      return
-    }
-    router.refresh()
+  const handleSaveProfile = () => {
+    saveProfile(
+      () => send(`/api/residents/${residentId}/profile`, 'PATCH', profile, 'Failed to save'),
+      () => flashSaved(setProfileSaved)
+    )
   }
 
-  const handleAddPhone = async () => {
+  const handleAddPhone = () => {
     const trimmed = phoneValue.trim()
     if (!trimmed) return
-    setAddingPhone(true)
-    setError(null)
-    const res = await fetch(`/api/residents/${residentId}/phone`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: trimmed, visibility: phoneVisibility }),
-    })
-    setAddingPhone(false)
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to add phone number')
-      return
-    }
-    setPhoneValue('')
-    router.refresh()
+    savePhone(
+      () =>
+        send(
+          `/api/residents/${residentId}/phone`,
+          'POST',
+          { value: trimmed, visibility: phoneVisibility },
+          'Failed to add phone number'
+        ),
+      () => setPhoneValue('')
+    )
   }
 
   const startEditingPhone = (contact: ContactMethod) => {
@@ -122,24 +137,13 @@ export default function MyInfoForm({
     setError(null)
   }
 
-  const handleSavePhoneEdit = async () => {
+  const handleSavePhoneEdit = () => {
     const trimmed = phoneEditValue.trim()
     if (!trimmed || !editingPhoneId) return
-    setSavingPhoneEdit(true)
-    setError(null)
-    const res = await fetch(`/api/residents/${residentId}/phone`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: trimmed }),
-    })
-    setSavingPhoneEdit(false)
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to update phone number')
-      return
-    }
-    setEditingPhoneId(null)
-    router.refresh()
+    savePhoneEdit(
+      () => send(`/api/residents/${residentId}/phone`, 'PATCH', { value: trimmed }, 'Failed to update phone number'),
+      () => setEditingPhoneId(null)
+    )
   }
 
   return (
@@ -187,6 +191,17 @@ export default function MyInfoForm({
           className="bg-accent text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           {savingBlurb ? 'Saving…' : blurbSaved ? 'Saved' : 'Save'}
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <ResidentProfileFields profile={profile} onChange={setProfile} />
+        <button
+          onClick={handleSaveProfile}
+          disabled={savingProfile || JSON.stringify(profile) === JSON.stringify(initialProfile)}
+          className="bg-accent text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {savingProfile ? 'Saving…' : profileSaved ? 'Saved' : 'Save'}
         </button>
       </div>
 
@@ -241,17 +256,7 @@ export default function MyInfoForm({
                       Edit
                     </button>
                   )}
-                  <select
-                    value={contact.visibility}
-                    onChange={(e) =>
-                      handleToggleVisibility(contact.id, e.target.value as ContactMethod['visibility'])
-                    }
-                    disabled={togglingId === contact.id}
-                    className="text-sm border border-border rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="block_wide">Visible to neighbors</option>
-                    <option value="steward_only">Visible to steward only</option>
-                  </select>
+                  <VisibilitySelect contact={contact} onError={setError} />
                 </div>
               </li>
             )

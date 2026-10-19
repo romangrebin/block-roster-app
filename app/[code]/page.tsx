@@ -12,6 +12,7 @@ import PageContainer from '@/components/PageContainer'
 import CommunityTabs from '@/components/CommunityTabs'
 import LendingLibrarySection, { type LibraryItem } from '@/components/LendingLibrarySection'
 import MarkdownText from '@/components/MarkdownText'
+import { pickProfile } from '@/lib/residentProfile'
 
 type ResidentRow = { resident: Resident; contacts: ContactMethod[] }
 
@@ -156,6 +157,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 residentId={viewerResident.id}
                 name={viewerResident.name}
                 blurb={viewerResident.blurb}
+                profile={pickProfile(viewerResident)}
                 contacts={viewerContacts}
               />
             ) : isSteward ? (
@@ -178,6 +180,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                   <ResidentIntakeForm
                     code={block.code}
                     residences={joinOptions}
+                    boundary={block.boundary}
                     canvasType={block.canvasType}
                     signedInEmail={user?.email ?? null}
                   />
@@ -214,6 +217,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
             <ResidentIntakeForm
               code={block.code}
               residences={joinOptions}
+              boundary={block.boundary}
               canvasType={block.canvasType}
               signedInEmail={user?.email ?? null}
             />

@@ -1,3 +1,5 @@
+import type { ResidentProfile } from './types'
+
 /**
  * Shared input hygiene for the API routes. Nothing here is an authorization check — it's the
  * layer before that: coerce untrusted JSON to the right shape, and stop a single request from
@@ -17,6 +19,9 @@ export const MAX_TEXT = {
   label: 200,
   nickname: 80,
   blurb: 2000,
+  favoriteSpot: 200,
+  countMeInFor: 500,
+  askMeAbout: 500,
   publicBlurb: 2000,
   privateNotes: 5000,
   stewardNotes: 2000,
@@ -31,6 +36,21 @@ export const MAX_TEXT = {
  */
 export function cappedText(raw: unknown, max: number): string {
   return typeof raw === 'string' ? raw.trim().slice(0, max) : ''
+}
+
+export const EARLIEST_MOVED_IN_YEAR = 1940
+
+/** Coerces untrusted JSON to a ResidentProfile. Blank or out-of-range values become null. */
+export function parseProfile(raw: unknown): ResidentProfile {
+  const body = (raw ?? {}) as Record<string, unknown>
+  const year = Number(body.movedInYear)
+  const yearIsValid = Number.isInteger(year) && year >= EARLIEST_MOVED_IN_YEAR && year <= new Date().getFullYear()
+  return {
+    movedInYear: yearIsValid ? year : null,
+    favoriteSpot: cappedText(body.favoriteSpot, MAX_TEXT.favoriteSpot) || null,
+    countMeInFor: cappedText(body.countMeInFor, MAX_TEXT.countMeInFor) || null,
+    askMeAbout: cappedText(body.askMeAbout, MAX_TEXT.askMeAbout) || null,
+  }
 }
 
 /** Coerces untrusted JSON to a valid ContactVisibility, defaulting to block_wide when absent or invalid. */
