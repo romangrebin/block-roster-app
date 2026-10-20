@@ -52,6 +52,8 @@ export default function CommunityTabs({
           <button
             key={tab.key}
             onClick={() => setActive(tab.key)}
+            data-umami-event="open-tab"
+            data-umami-event-tab={tab.label}
             className={`px-4 py-2 text-base font-medium whitespace-nowrap cursor-pointer border-b-2 -mb-px transition-colors ${
               active === tab.key
                 ? 'border-accent text-accent'

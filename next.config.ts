@@ -12,14 +12,14 @@ const contentSecurityPolicy = [
   // 'unsafe-inline' covers Next's inline bootstrap/hydration scripts. 'unsafe-eval' was kept
   // as a precaution (the report-only pass didn't flag script-src); dropping it is possible
   // future tightening, its own test.
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cloud.umami.is",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data:",
   // basemaps.cartocdn.com is used bare (no subdomain), which `*.basemaps.cartocdn.com` does
   // NOT match — both forms are listed. MapLibre fetches raster tiles via fetch(), so the CARTO
   // host has to be in connect-src too, not just img-src.
   "img-src 'self' data: blob: https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com https://fonts.openmaptiles.org https://nominatim.openstreetmap.org https://overpass-api.de https://maps.mail.ru",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com https://fonts.openmaptiles.org https://nominatim.openstreetmap.org https://overpass-api.de https://maps.mail.ru https://gateway.umami.is",
   "worker-src 'self' blob:",
   "base-uri 'self'",
   "form-action 'self'",

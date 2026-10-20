@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lora, Manrope } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import Script from "next/script";
 import { getUserFromServerComponent } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import AuthButton from "@/components/AuthButton";
@@ -44,6 +45,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <AuthButton user={user} />
         </header>
         <main className="flex flex-1 flex-col">{children}</main>
+        {/* Umami analytics. data-domains keeps local dev out of the stats; data-exclude-search keeps
+            query strings (sign-in link ids) out of the recorded URLs. */}
+        <Script
+          src="https://cloud.umami.is/script.js"
+          data-website-id="20c3a113-62cc-47b0-9207-2532fd0b1d9b"
+          data-domains="ourblock.community"
+          data-exclude-search="true"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

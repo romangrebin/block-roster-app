@@ -80,7 +80,15 @@ export default function ExpeditionGame({
       {journeyOver ? (
         <Ending result={result} communityPath={communityPath} onStartOver={startOver} />
       ) : (
-        <button onClick={() => setDaysShown((n) => n + 1)} className={primaryButtonClass}>
+        <button
+          onClick={() => setDaysShown((n) => n + 1)}
+          {...(daysShown === result.journal.length && {
+            'data-umami-event': 'expedition-finished',
+            'data-umami-event-outcome': result.outcome,
+            'data-umami-event-failures': result.failures,
+          })}
+          className={primaryButtonClass}
+        >
           {daysShown === result.journal.length ? 'Come home' : 'Next day'}
         </button>
       )}
@@ -164,7 +172,13 @@ function PartyPicker({
         )}
       </section>
 
-      <button onClick={onSetOut} disabled={party.length !== PARTY_SIZE} className={primaryButtonClass}>
+      <button
+        onClick={onSetOut}
+        disabled={party.length !== PARTY_SIZE}
+        data-umami-event="expedition-set-out"
+        data-umami-event-items={items.length}
+        className={primaryButtonClass}
+      >
         Set out
       </button>
     </div>
@@ -240,11 +254,12 @@ function Ending({
       <section className="space-y-4 border-t border-border pt-6">
         <p className="text-lg text-ink">Somewhere, your street is someone&apos;s history too. Who lives there now?</p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/" className={primaryButtonClass}>
+          <Link href="/" data-umami-event="expedition-start-community" className={primaryButtonClass}>
             Start a community for your street
           </Link>
           <button
             onClick={onStartOver}
+            data-umami-event="expedition-try-again"
             className="px-6 py-2.5 rounded-full text-base font-medium border border-border text-ink hover:border-accent cursor-pointer"
           >
             Try a different party
@@ -256,6 +271,7 @@ function Ending({
           <Link
             href={`${communityPath}/expedition/sources`}
             target="_blank"
+            data-umami-event="expedition-sources"
             className="text-accent underline"
           >
             The history behind the story

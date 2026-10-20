@@ -2,6 +2,7 @@ import { getRepository } from './db'
 import { createSupabaseAdminClient } from './supabase-admin'
 import { sendEmail } from './email'
 import { escapeHtml } from './validation'
+import { EXPEDITION_BLOCK_CODE } from './expedition'
 import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Resident, ResidentProfile, Steward } from './types'
 
 /**
@@ -457,7 +458,9 @@ export async function requestToBorrow(itemId: string, userId: string): Promise<B
     return { ownerEmailed: false, alreadyRequested: true }
   }
   await repo.borrowRequests.record(item.id, requester.id)
-  const ownerEmailed = await notifyOwnerOfBorrowRequest(block, item.name, owner, requester)
+  // Demo players are strangers to each other, so the Expedition never emails or shares addresses.
+  const ownerEmailed =
+    block.code !== EXPEDITION_BLOCK_CODE && (await notifyOwnerOfBorrowRequest(block, item.name, owner, requester))
   return { ownerEmailed, alreadyRequested: false }
 }
 

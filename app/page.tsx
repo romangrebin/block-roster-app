@@ -150,7 +150,7 @@ export default async function Home() {
           {!user ? (
             <p className="text-base text-muted">Sign in (top right) to see or create your community.</p>
           ) : (
-            <Link href="/blocks/new" className={PRIMARY_BUTTON_CLASS}>
+            <Link href="/blocks/new" data-umami-event="start-community" className={PRIMARY_BUTTON_CLASS}>
               {blocks.some((b) => b.role === "steward") ? "Create another community" : "Create a community"}
             </Link>
           )}

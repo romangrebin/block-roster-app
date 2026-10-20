@@ -292,6 +292,7 @@ export default function ResidentIntakeForm({
       {error &&<p className="text-base text-red-600">{error}</p>}
       <button
         type="submit"
+        data-umami-event="register"
         disabled={!residenceId || !name.trim() || !email.trim() || submitting}
         className="w-full bg-accent text-white py-3 rounded-full text-base font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]"
       >

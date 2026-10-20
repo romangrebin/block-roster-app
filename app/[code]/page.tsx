@@ -172,6 +172,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 borrowRequestsEnabled={block.borrowRequestsEnabled}
                 requestedItemIds={requestedItemIds}
                 forExpedition={isExpedition}
+                viewerEmail={user?.email ?? null}
               />
             )
           }

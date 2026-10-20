@@ -28,17 +28,21 @@ function AskToBorrowButton({
   ownerName,
   requested,
   forExpedition,
+  viewerEmail,
 }: {
   itemId: string
   ownerName: string
   requested: boolean
   forExpedition: boolean
+  viewerEmail: string | null
 }) {
   const { isPending, saveAndRefresh } = useSaveAndRefresh()
+  const [confirming, setConfirming] = useState(false)
   const [confirmation, setConfirmation] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleAsk = () => {
+    setConfirming(false)
     setError(null)
     saveAndRefresh(async () => {
       const res = await fetch(`/api/items/${itemId}/borrow-request`, { method: 'POST' })
@@ -56,10 +60,37 @@ function AskToBorrowButton({
     return <p className="text-sm text-ink">Set aside for the expedition. You&apos;ll take two.</p>
   }
   if (confirmation) return <p className="text-sm text-ink">{confirmation}</p>
+  if (confirming) {
+    return (
+      <div className="flex items-center gap-3 flex-wrap text-sm">
+        <span className="text-ink">
+          This will email {ownerName}
+          {viewerEmail && (
+            <>
+              {' '}
+              with replies going to <strong>{viewerEmail}</strong>
+            </>
+          )}
+          . Send?
+        </span>
+        <button
+          onClick={handleAsk}
+          data-umami-event="ask-to-borrow"
+          className="font-medium text-accent hover:underline cursor-pointer"
+        >
+          Send
+        </button>
+        <button onClick={() => setConfirming(false)} className="text-muted hover:text-ink cursor-pointer">
+          Cancel
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="space-y-1">
       <button
-        onClick={handleAsk}
+        onClick={forExpedition ? handleAsk : () => setConfirming(true)}
+        {...(forExpedition && { 'data-umami-event': 'ask-to-borrow' })}
         disabled={isPending || requested}
         className="text-sm font-medium text-accent border border-accent rounded-full px-3 py-1 hover:bg-accent hover:text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
       >
@@ -83,6 +114,7 @@ export default function LendingLibrarySection({
   borrowRequestsEnabled,
   requestedItemIds,
   forExpedition,
+  viewerEmail,
 }: {
   blockId: string
   items: LibraryItem[]
@@ -90,6 +122,7 @@ export default function LendingLibrarySection({
   borrowRequestsEnabled: boolean
   requestedItemIds: string[]
   forExpedition: boolean
+  viewerEmail: string | null
 }) {
   const { isPending, saveAndRefresh } = useSaveAndRefresh()
   const [view, setView] = useState<'browse' | 'mine'>('browse')
@@ -186,6 +219,7 @@ export default function LendingLibrarySection({
                   ownerName={ownerName}
                   requested={requestedItemIds.includes(item.id)}
                   forExpedition={forExpedition}
+                  viewerEmail={viewerEmail}
                 />
               )}
             </li>
