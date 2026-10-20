@@ -32,7 +32,15 @@ function VisibilitySelect({
   )
 }
 
-type ResidenceOption = { id: string; label: string; nickname: string | null; shape: unknown }
+type ResidenceOption = { id: string; label: string; nickname: string | null; shape: unknown; hasResidents: boolean }
+
+function ResidenceOptions({ residences }: { residences: ResidenceOption[] }) {
+  return residences.map((r) => (
+    <option key={r.id} value={r.id}>
+      {r.nickname ? `${r.nickname} (${r.label})` : r.label}
+    </option>
+  ))
+}
 
 /**
  * Resident self-registration: pick a residence (by tapping the map, if any residence has a
@@ -160,6 +168,8 @@ export default function ResidentIntakeForm({
     (r): r is ResidenceOption & { shape: Feature<Polygon | MultiPolygon> } => !!r.shape
   )
   const showMap = canvasType === 'geo_map' && shapedResidences.length > 0
+  const openResidences = residences.filter((r) => !r.hasResidents)
+  const registeredResidences = residences.filter((r) => r.hasResidents)
 
   return (
     <form onSubmit={handleRegister} className="space-y-4">
@@ -182,11 +192,16 @@ export default function ResidentIntakeForm({
           <option value="" disabled>
             Select your residence…
           </option>
-          {residences.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.nickname ? `${r.nickname} (${r.label})` : r.label}
-            </option>
-          ))}
+          {openResidences.length > 0 && (
+            <optgroup label="No one registered yet">
+              <ResidenceOptions residences={openResidences} />
+            </optgroup>
+          )}
+          {registeredResidences.length > 0 && (
+            <optgroup label="Already has registered residents">
+              <ResidenceOptions residences={registeredResidences} />
+            </optgroup>
+          )}
         </select>
       </div>
       <div>

@@ -27,18 +27,27 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
   if (!block) notFound()
 
   const user = await getUserFromServerComponent()
-  // The three lookups below don't depend on each other — running them together instead of one
-  // after another saves two round-trips' worth of latency on every load of this page.
-  const [steward, viewerResident, residences] = await Promise.all([
+  // The lookups below don't depend on each other, so they run together in one round-trip's time.
+  const [steward, viewerResident, residences, residents] = await Promise.all([
     user ? resolveActiveSteward(block.id, user.id) : Promise.resolve(null),
     user ? resolveApprovedResident(block.id, user.id) : Promise.resolve(null),
     repo.residences.listByBlock(block.id),
+    repo.residents.listByBlock(block.id),
   ])
   const isSteward = steward !== null
   const hasPrivateAccess = isSteward || viewerResident !== null
   const viewerContacts = viewerResident ? await repo.contactMethods.listByResident(viewerResident.id) : []
 
-  const joinOptions = residences.map((r) => ({ id: r.id, label: r.label, nickname: r.nickname, shape: r.shape }))
+  const registeredResidenceIds = new Set(
+    residents.filter((r) => r.status === 'approved').map((r) => r.residenceId)
+  )
+  const joinOptions = residences.map((r) => ({
+    id: r.id,
+    label: r.label,
+    nickname: r.nickname,
+    shape: r.shape,
+    hasResidents: registeredResidenceIds.has(r.id),
+  }))
   // stewardNotes is steward-eyes-only — strip it before a residence reaches any client prop for
   // a non-steward viewer. Not just a UI gate: this keeps it out of the page's RSC payload
   // entirely, so it can't be found via view-source either.
