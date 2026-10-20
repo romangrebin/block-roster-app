@@ -198,3 +198,12 @@ export type BorrowRequest = {
   requesterId: string
   requestedAt: string
 }
+
+export type ExpeditionRun = {
+  id: string
+  residentId: string
+  party: string[]
+  items: string[]
+  failures: number
+  createdAt: string
+}

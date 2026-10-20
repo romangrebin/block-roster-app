@@ -57,7 +57,7 @@ function AskToBorrowButton({
   }
 
   if (forExpedition && requested) {
-    return <p className="text-sm text-ink">Set aside for the expedition. You&apos;ll take two.</p>
+    return <p className="text-sm text-ink">Set aside for the expedition. You&apos;ll bring two borrowed items on the trip.</p>
   }
   if (confirmation) return <p className="text-sm text-ink">{confirmation}</p>
   if (confirming) {

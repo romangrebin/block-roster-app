@@ -13,6 +13,8 @@ const SOURCES = `
 - ★ At about 8,375 feet with no local timber, Bodie suffered a real **"wood famine" in 1878–79**: a cord of firewood cost $18–20. — [destination4x4: Sawmill](https://www.destination4x4.com/sawmill-bodie-california-mono-county/)
 - ★ The fix was a railroad: the Bodie Railway & Lumber Co. opened a 31.7-mile narrow-gauge line to Mono Mills in November 1881, hauling wood until 1917. — [Wikipedia: Bodie and Benton Railway](https://en.wikipedia.org/wiki/Bodie_and_Benton_Railway_and_Commercial_Company), [nvexpeditions](https://beyond.nvexpeditions.com/california/mono/bodie.php)
 - ★ The world's largest stand of Jeffrey pine grows southeast of Mono Lake, which is where Bodie's wood came from. — [Atlas Obscura: Mono Mills](https://atlasobscura.com/places/mono-mills)
+- In 1942 the War Production Board suspended mining, and Bodie's last residents left shortly after. — [APIAHiP: Bodie Historic District](https://apiahip.org/everyday/day-103-bodie-historic-district-bodie-california)
+- ★ Bodie isn't quite empty: a park ranger and support staff live year-round in some of the old houses. — [National Trust for Historic Preservation](https://savingplaces.org/stories/preserving-decay-exploring-the-ghost-town-of-bodie-california)
 - Cyanide processing (1890) revived the Standard mine. It closed in 1913, a 1932 fire destroyed most of Main Street, and Bodie became a state park in 1962, kept in "arrested decay." — [bodiehistory.com](https://bodiehistory.com/bodie2.htm)
 - **A liberty we took:** in the game the Methodist Church already stands in the winter of 1879. It was really completed in 1882, and before that the congregation met in homes and the Miners' Union Hall. Its bell was first rung on Christmas Day, 1882. — [bodie.com](https://www.bodie.com/history/structures/methodist-church/)
 - ★ The Methodist Church is the town's last standing church. Its painted Ten Commandments cloth was stolen by vandals sometime between the 1940s and 1962. — [bodie.com](https://www.bodie.com/history/structures/methodist-church/)
@@ -34,7 +36,7 @@ const SOURCES = `
 
 - ★ The Bodie Hills are the homeland of the Kutzadika'a (Mono Lake Paiute). Their name refers to the brine fly pupae they harvested at the lake. The rush disrupted their camps and pinyon groves, and they are still here, still seeking federal recognition. — [Wikipedia: Mono people](https://en.wikipedia.org/wiki/Mono_people), [Forgotten Lands](https://forgottenlands.substack.com/p/dispatch-16-the-bodie-hills), [ICT News](https://ictnews.org/?p=125852)
 - ★ Bodie's Chinese residents settled along King Street by the 1870s. Barred from the mines, they came to dominate woodcutting, hauling cordwood by mule train, so much of Bodie's warmth came through their hands. — [Nevada State Museum: Fueling the Boom](https://carsonnvmuseum.org/exhibits/fueling-the-boom-chinese-woodcutters-in-the-great-basin-1870-1920), [Carson Now](https://carsonnow.org/reader-content/06/25/2019/lecture-details-lives-immigrant-chinese-woodcutters)
-- The 1882 Chinese Exclusion Act was passed during this era.
+- At its peak in 1880, several hundred Chinese residents lived in Bodie's Chinatown, northwest of Main and King Streets. The 1882 Chinese Exclusion Act barred new Chinese laborers from immigrating, so no new families could join them. — [APIAHiP: Bodie Historic District](https://apiahip.org/everyday/day-103-bodie-historic-district-bodie-california)
 
 ## Visit
 

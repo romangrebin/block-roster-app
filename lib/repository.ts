@@ -13,6 +13,7 @@ import type {
   Item,
   ItemInput,
   BorrowRequest,
+  ExpeditionRun,
 } from './types'
 
 /**
@@ -115,6 +116,12 @@ export interface BorrowRequestRepository {
   listByRequester(requesterId: string): Promise<BorrowRequest[]>
 }
 
+export interface ExpeditionRunRepository {
+  create(input: Omit<ExpeditionRun, 'id' | 'createdAt'>): Promise<ExpeditionRun>
+  // Newest first.
+  listByResidents(residentIds: string[], limit: number): Promise<ExpeditionRun[]>
+}
+
 export type BlockRosterRepository = {
   blocks: BlockRepository
   residences: ResidenceRepository
@@ -123,4 +130,5 @@ export type BlockRosterRepository = {
   stewards: StewardRepository
   items: ItemRepository
   borrowRequests: BorrowRequestRepository
+  expeditionRuns: ExpeditionRunRepository
 }

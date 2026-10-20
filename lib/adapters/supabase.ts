@@ -9,6 +9,7 @@ import type {
   StewardRepository,
   ItemRepository,
   BorrowRequestRepository,
+  ExpeditionRunRepository,
   BlockRosterRepository,
 } from '../repository'
 import type {
@@ -25,6 +26,7 @@ import type {
   Item,
   ItemCategory,
   BorrowRequest,
+  ExpeditionRun,
 } from '../types'
 
 /**
@@ -116,6 +118,15 @@ type BorrowRequestRow = {
   item_id: string
   requester_id: string
   requested_at: string
+}
+
+type ExpeditionRunRow = {
+  id: string
+  resident_id: string
+  party: string[]
+  items: string[]
+  failures: number
+  created_at: string
 }
 
 // ── Row -> domain mappers ──
@@ -221,6 +232,17 @@ function toItem(row: ItemRow): Item {
 
 function toBorrowRequest(row: BorrowRequestRow): BorrowRequest {
   return { itemId: row.item_id, requesterId: row.requester_id, requestedAt: row.requested_at }
+}
+
+function toExpeditionRun(row: ExpeditionRunRow): ExpeditionRun {
+  return {
+    id: row.id,
+    residentId: row.resident_id,
+    party: row.party,
+    items: row.items,
+    failures: row.failures,
+    createdAt: row.created_at,
+  }
 }
 
 function requireNoError<T>(data: T | null, error: { message: string } | null, context: string): T {
@@ -688,6 +710,30 @@ function createBorrowRequestRepository(client: SupabaseClient): BorrowRequestRep
   }
 }
 
+function createExpeditionRunRepository(client: SupabaseClient): ExpeditionRunRepository {
+  return {
+    async create(input) {
+      const { data, error } = await client
+        .from('expedition_runs')
+        .insert({ resident_id: input.residentId, party: input.party, items: input.items, failures: input.failures })
+        .select()
+        .single()
+      return toExpeditionRun(requireNoError(data as ExpeditionRunRow | null, error, 'expeditionRuns.create'))
+    },
+    async listByResidents(residentIds, limit) {
+      if (residentIds.length === 0) return []
+      const { data, error } = await client
+        .from('expedition_runs')
+        .select()
+        .in('resident_id', residentIds)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+      if (error) throw new Error(`[supabase adapter] expeditionRuns.listByResidents: ${error.message}`)
+      return (data as ExpeditionRunRow[]).map(toExpeditionRun)
+    },
+  }
+}
+
 export function createSupabaseRepository(client: SupabaseClient): BlockRosterRepository {
   return {
     blocks: createBlockRepository(client),
@@ -697,5 +743,6 @@ export function createSupabaseRepository(client: SupabaseClient): BlockRosterRep
     stewards: createStewardRepository(client),
     items: createItemRepository(client),
     borrowRequests: createBorrowRequestRepository(client),
+    expeditionRuns: createExpeditionRunRepository(client),
   }
 }

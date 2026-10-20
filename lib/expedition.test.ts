@@ -34,4 +34,17 @@ describe('runExpedition', () => {
     expect(result.outcome).toBe('failed')
     expect(result.journal.find((d) => d.day === 2)?.lines).toHaveLength(2)
   })
+
+  it('gives every neighbor in a perfect party a color line', () => {
+    const result = runExpedition(['Tom Miller', 'Hannah Price', 'Wing Yee'], ['Long snowshoes', 'Iron-shod spare axle'])
+    const colorLines = result.journal.filter((d) => d.title === null).flatMap((d) => d.lines.slice(1))
+    expect(colorLines).toHaveLength(3)
+  })
+
+  it("doesn't claim both wagons came home after losing one", () => {
+    const result = runExpedition(['Tom Miller', 'Hannah Price', 'Wing Yee'], ['Long snowshoes'])
+    expect(result.outcome).toBe('clean')
+    expect(result.arrival).toContain('one wagon')
+    expect(result.journal.find((d) => d.title === 'The axle')?.hint).toBeTruthy()
+  })
 })

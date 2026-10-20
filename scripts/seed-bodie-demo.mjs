@@ -17,7 +17,7 @@ const PUBLIC_DESCRIPTION = `**⛏️ Gold has been discovered in Bodie!** It's t
 
 ---
 
-*What is this?* A demo community of **Our Block** (this app), turned into a playable narrative. Bodie is a real California ghost town: every house on this map still stands, and most of the people here really lived in them. Join as a newcomer, pick an empty house, and say a bit about yourself. Then meet your neighbors and see if you can help the community during your first winter. About 10 minutes.`
+*What is this?* A demo community of **Our Block** (this app), turned into a playable narrative based in 1879. Bodie is a real California ghost town: every house on this map still stands, and most of the people here really lived in them. Join as a newcomer, pick an empty house, and say a bit about yourself. Then meet your neighbors and see if you can help the community during your first winter. You'll get a sign-in link by email; the game is inside. Up to 15 minutes.`
 
 const PRIVATE_DESCRIPTION = `You came for the gold and the hope of creating a life for yourself, just like everyone else.
 
@@ -25,9 +25,9 @@ Nobody warned you about the winter.
 
 It's November 1879. The woodpiles are nearly gone, and a cord costs twenty dollars, most of a week's pay. Last night at the Miners' Union Hall they decided four people would take wagons south to the pines past Mono Lake and bring back what they can before the passes close.
 
-You said you'd go, it's a good way to be of service to the community and make a name for yourself. You'll have to choose the other three carefully: who they are, what they know, what they'd lend.
+You said you'd go. Someone had to, and it's a good way to make a name for yourself. You'll have to choose the other three carefully: who they are, what they know, what they'd lend.
 
-*How to play: get to know your neighbors on the map, check the Lending Library for anything worth borrowing, then head to the **Expedition** tab to choose your party: three neighbors to go with you, and up to two borrowed things.*`
+*How to play: get to know your neighbors on the map, check the Lending Library for anything worth borrowing, then head to the **Expedition** tab to choose your party: three neighbors to go with you, and two borrowed things.*`
 
 // Keyed by residence label exactly as drawn in the app. Real people keep their documented facts;
 // voices, feelings, and invented occupants are fiction (see the draft's ground rules).
@@ -38,7 +38,7 @@ const CAST = [
     blurb: "Martha and I came up this year. I'm in lumber, and this winter, that makes me the most popular man in town.",
     movedInYear: 1879,
     favoriteSpot: 'The south shore at dawn, where the barges load',
-    countMeInFor: 'Anything that gets wood moving',
+    countMeInFor: 'A good argument about prices',
     askMeAbout: 'Running barges across Mono Lake, and which shore to land on',
     items: [{ name: 'Chart of the Mono Lake shore', category: 'other', description: 'Hand-drawn, with the springs marked. Bring it back dry.' }],
   },
@@ -95,10 +95,10 @@ const CAST = [
   {
     residence: 'McDonald House',
     name: 'Dan McDonald',
-    blurb: 'I work at the Standard. Strong back, stronger opinions.',
+    blurb: 'I work nights at the Standard. Strong opinions, stronger coffee.',
     movedInYear: 1878,
     favoriteSpot: "The Standard's hoist house, which is warm",
-    countMeInFor: 'Anything that needs a strong back',
+    countMeInFor: 'An argument about anything',
     askMeAbout: 'Which saloon has the warmest stove',
     items: [],
   },
@@ -177,7 +177,7 @@ const CAST = [
     favoriteSpot: 'Anywhere nobody else has found yet',
     countMeInFor: 'Not much, these days',
     askMeAbout: "The mountains, though I won't tell you everything",
-    items: [{ name: 'Buffalo robe', category: 'other', description: 'Heavy, warm, and smells like the man who owns it.' }],
+    items: [{ name: 'Buffalo robe', category: 'other', description: "Keeps the frost off a sleeping man. Can't do much for one who's already frozen. Smells like me." }],
   },
 ]
 

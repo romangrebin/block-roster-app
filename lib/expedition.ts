@@ -4,7 +4,7 @@
 export const EXPEDITION_BLOCK_CODE = 'bodie-ca'
 
 export const PARTY_SIZE = 3
-export const MAX_BORROWED_ITEMS = 2
+export const BORROWED_ITEM_COUNT = 2
 
 export type Neighbor = { name: string; residence: string; colorLine: string }
 
@@ -74,7 +74,7 @@ export const NEIGHBORS: Neighbor[] = [
   {
     name: 'Pete Sturgeon',
     residence: 'Sturgeon House',
-    colorLine: "Pete read his daughter's last letter by the fire, then folded it away without a word.",
+    colorLine: "Pete read his daughter's latest letter by the fire, then folded it away without a word.",
   },
 ]
 
@@ -96,7 +96,8 @@ function itemColorLine(itemName: string) {
 /** Whoever or whatever handles a challenge: the first listed answer in the party is used. */
 type Answer = { neighbor?: string; item?: string; line: string }
 
-type Challenge = { day: number; title: string; answers: Answer[]; failure: string }
+/** `hint` follows a failure, pointing at the kind of help that was missing without naming anyone. */
+type Challenge = { day: number; title: string; answers: Answer[]; failure: string; hint: string }
 
 const CHALLENGES: Challenge[] = [
   {
@@ -110,6 +111,7 @@ const CHALLENGES: Challenge[] = [
     ],
     failure:
       'The second wagon slid off the grade and broke a wheel. We lost half a day getting it back on the road. The mules were fine. We were not.',
+    hint: 'Someone who drove teams for a living might have known how to get a loaded wagon down that grade.',
   },
   {
     day: 3,
@@ -127,6 +129,7 @@ const CHALLENGES: Challenge[] = [
     ],
     failure:
       "The lake is too bitter to drink, and we couldn't find fresh water. A long, dry day for us and the mules.",
+    hint: 'Someone who knew the shore, or had a map of it, might have found a spring.',
   },
   {
     day: 5,
@@ -142,6 +145,7 @@ const CHALLENGES: Challenge[] = [
       },
     ],
     failure: 'We had the wrong saw, or the wrong hands. Two days of work for one cord.',
+    hint: 'A real woodcutter, or a proper saw, would have made the difference.',
   },
   {
     day: 7,
@@ -155,9 +159,14 @@ const CHALLENGES: Challenge[] = [
         neighbor: 'Andrew Cameron',
         line: 'Andrew had us dig in behind the wagons the way they did in the Sierra camps. We waited it out.',
       },
+      {
+        neighbor: 'Pete Sturgeon',
+        line: "Pete stopped the wagons, read the wind, and found the road where none of us could see one. He didn't explain how.",
+      },
       { item: 'Long snowshoes', line: "Annie's skis carried one of us ahead to find the road." },
     ],
     failure: "We couldn't see the mules from the wagon. We walked in circles until morning.",
+    hint: 'Someone who knew the high country in winter, or a way across deep snow, might have found the road.',
   },
   {
     day: 9,
@@ -173,6 +182,7 @@ const CHALLENGES: Challenge[] = [
       },
     ],
     failure: 'The axle cracked at twenty below. We left the second wagon and its wood on the road. I still think about that wood.',
+    hint: 'Someone who could fix a wagon on the road, or a spare part, would have saved it.',
   },
   {
     day: 11,
@@ -184,8 +194,11 @@ const CHALLENGES: Challenge[] = [
       },
     ],
     failure: "My fingers went white, then gray. I'll keep the hand, they think.",
+    hint: 'Someone with nursing experience would have known how to thaw them.',
   },
 ]
+
+export const CHALLENGE_COUNT = CHALLENGES.length
 
 const QUIET_DAYS: { day: number; line: string }[] = [
   { day: 2, line: 'First night out. Someone asked why I came west. I said gold. They laughed, but kindly.' },
@@ -198,11 +211,23 @@ const QUIET_DAYS: { day: number; line: string }[] = [
   { day: 10, line: 'Everyone smells of smoke and mules. Nobody minds anymore.' },
 ]
 
-export type JournalDay = { day: number; title: string | null; lines: string[]; succeeded: boolean | null }
+export type JournalDay = {
+  day: number
+  title: string | null
+  lines: string[]
+  succeeded: boolean | null
+  hint: string | null
+}
 
 export type Outcome = 'clean' | 'worse_for_wear' | 'failed'
 
-export type ExpeditionResult = { journal: JournalDay[]; failures: number; outcome: Outcome; wingCame: boolean }
+export type ExpeditionResult = {
+  journal: JournalDay[]
+  failures: number
+  outcome: Outcome
+  arrival: string
+  wingCame: boolean
+}
 
 export function runExpedition(party: string[], items: string[]): ExpeditionResult {
   const contributed = new Set<string>()
@@ -216,34 +241,45 @@ export function runExpedition(party: string[], items: string[]): ExpeditionResul
       title: challenge.title,
       lines: [answer ? answer.line : challenge.failure],
       succeeded: answer !== undefined,
+      hint: answer ? null : challenge.hint,
     }
   })
 
-  // Anyone and anything that didn't save the day still gets a moment, one per quiet day.
+  // Everyone in the party gets a moment on a quiet day: first those who didn't save a challenge
+  // (people and things), then those who did. Items that helped are left out, since their color
+  // lines assume they weren't needed.
+  const partyNeighbors = NEIGHBORS.filter((n) => party.includes(n.name))
   const colorLines = [
-    ...NEIGHBORS.filter((n) => party.includes(n.name) && !contributed.has(n.name)).map((n) => n.colorLine),
+    ...partyNeighbors.filter((n) => !contributed.has(n.name)).map((n) => n.colorLine),
     ...items.filter((item) => !contributed.has(item)).map(itemColorLine),
+    ...partyNeighbors.filter((n) => contributed.has(n.name)).map((n) => n.colorLine),
   ]
   const quietDays: JournalDay[] = QUIET_DAYS.map(({ day, line }, index) => ({
     day,
     title: null,
     lines: colorLines[index] ? [line, colorLines[index]] : [line],
     succeeded: null,
+    hint: null,
   }))
 
+  const failed = (title: string) => challengeDays.some((d) => d.title === title && !d.succeeded)
   const failures = challengeDays.filter((d) => !d.succeeded).length
   const outcome: Outcome = failures <= 1 ? 'clean' : failures === 2 ? 'worse_for_wear' : 'failed'
   return {
     journal: [...challengeDays, ...quietDays].sort((a, b) => a.day - b.day),
     failures,
     outcome,
+    arrival: arrivalLine(outcome, { lostAWagon: failed('The axle'), thinLoads: failed('The pines') }),
     wingCame: party.includes('Wing Yee'),
   }
 }
 
-export const ARRIVAL: Record<Outcome, string> = {
-  clean:
-    'We came down into Bodie on the twelfth day with both wagons full of pine.',
-  worse_for_wear: 'We came home with less than we went for, and less of ourselves.',
-  failed: 'We came home with almost nothing. Bodie buried more of its own that winter than it should have.',
+function arrivalLine(outcome: Outcome, { lostAWagon, thinLoads }: { lostAWagon: boolean; thinLoads: boolean }) {
+  if (outcome === 'failed') {
+    return 'We came home with almost nothing. Bodie buried more of its own that winter than it should have.'
+  }
+  if (outcome === 'worse_for_wear') return 'We came home with less than we went for, and less of ourselves.'
+  if (lostAWagon) return 'We came down into Bodie on the twelfth day with one wagon of pine. The other is still on the road.'
+  if (thinLoads) return 'We came down into Bodie on the twelfth day with the wagons half full. It would have to do.'
+  return 'We came down into Bodie on the twelfth day with both wagons full of pine.'
 }

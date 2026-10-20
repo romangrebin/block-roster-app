@@ -61,6 +61,7 @@ export default function ResidentIntakeForm({
   residences,
   boundary,
   hiddenSignupPrompts,
+  autoApproveJoins,
   canvasType,
   signedInEmail,
 }: {
@@ -68,6 +69,7 @@ export default function ResidentIntakeForm({
   residences: ResidenceOption[]
   boundary: Feature<Polygon | MultiPolygon> | null
   hiddenSignupPrompts: SignupPromptKey[]
+  autoApproveJoins: boolean
   canvasType: CanvasType
   signedInEmail?: string | null
 }) {
@@ -154,8 +156,10 @@ export default function ResidentIntakeForm({
       <div className="space-y-1">
         <p className="text-lg font-medium text-ink">Check your email</p>
         <p className="text-base text-muted">
-          We sent a link to <strong>{email}</strong>. Tap it to confirm — a steward will approve
-          you soon after.
+          We sent a link to <strong>{email}</strong>.{' '}
+          {autoApproveJoins
+            ? "Tap it to confirm and you're in."
+            : 'Tap it to confirm — a steward will approve you soon after.'}
         </p>
       </div>
     )

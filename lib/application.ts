@@ -1,8 +1,8 @@
 import { getRepository } from './db'
 import { createSupabaseAdminClient } from './supabase-admin'
 import { sendEmail } from './email'
-import { escapeHtml } from './validation'
-import { EXPEDITION_BLOCK_CODE } from './expedition'
+import { escapeHtml, MAX_TEXT } from './validation'
+import { EXPEDITION_BLOCK_CODE, BORROWED_ITEM_COUNT, NEIGHBORS, PARTY_SIZE, runExpedition } from './expedition'
 import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Resident, ResidentProfile, Steward } from './types'
 
 /**
@@ -504,4 +504,48 @@ export async function listRequestedItemIds(
   return requests
     .filter((r) => includeExpired || Date.now() - Date.parse(r.requestedAt) < BORROW_REQUEST_COOLDOWN_MS)
     .map((r) => r.itemId)
+}
+
+export type PastExpedition = { playerName: string; party: string[]; items: string[]; failures: number; createdAt: string }
+
+/** Records a finished Expedition run, scoring it here rather than trusting the browser. */
+export async function recordExpeditionRun(
+  userId: string,
+  party: unknown,
+  items: unknown
+): Promise<{ error: string; status: number } | { ok: true }> {
+  const repo = getRepository()
+  const block = await repo.blocks.getByCode(EXPEDITION_BLOCK_CODE)
+  const player = block ? await resolveApprovedResident(block.id, userId) : null
+  if (!player) return { error: 'Not authorized', status: 403 }
+
+  const neighborNames = NEIGHBORS.map((n) => n.name)
+  const validParty =
+    Array.isArray(party) &&
+    party.length === PARTY_SIZE &&
+    new Set(party).size === PARTY_SIZE &&
+    party.every((name) => neighborNames.includes(name))
+  const validItems =
+    Array.isArray(items) &&
+    items.length === BORROWED_ITEM_COUNT &&
+    items.every((item) => typeof item === 'string' && item.length <= MAX_TEXT.itemName)
+  if (!validParty || !validItems) return { error: 'Invalid party', status: 400 }
+
+  const { failures } = runExpedition(party, items)
+  await repo.expeditionRuns.create({ residentId: player.id, party, items, failures })
+  return { ok: true }
+}
+
+export async function listPastExpeditions(blockId: string, limit: number): Promise<PastExpedition[]> {
+  const repo = getRepository()
+  const residents = await repo.residents.listByBlock(blockId)
+  const nameById = new Map(residents.map((r) => [r.id, r.name]))
+  const runs = await repo.expeditionRuns.listByResidents([...nameById.keys()], limit)
+  return runs.map((run) => ({
+    playerName: nameById.get(run.residentId) ?? 'A newcomer',
+    party: run.party,
+    items: run.items,
+    failures: run.failures,
+    createdAt: run.createdAt,
+  }))
 }

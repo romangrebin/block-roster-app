@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getUserFromServerComponent } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
-import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory, listRequestedItemIds } from '@/lib/application'
+import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory, listRequestedItemIds, listPastExpeditions } from '@/lib/application'
 import type { Resident, ContactMethod } from '@/lib/types'
 import ResidentIntakeForm from '@/components/ResidentIntakeForm'
 import JoinLinkBox from '@/components/JoinLinkBox'
@@ -117,6 +117,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
     block.borrowRequestsEnabled && viewerResident
       ? await listRequestedItemIds(viewerResident.id, { includeExpired: isExpedition })
       : []
+  const pastExpeditions = isExpedition && hasPrivateAccess ? await listPastExpeditions(block.id, 20) : []
   const setAsideItemNames = libraryItems
     .filter(({ item }) => requestedItemIds.includes(item.id))
     .map(({ item }) => item.name)
@@ -177,7 +178,13 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
             )
           }
           expedition={
-            isExpedition && <ExpeditionGame communityPath={`/${block.code}`} setAsideItemNames={setAsideItemNames} />
+            isExpedition && (
+              <ExpeditionGame
+                communityPath={`/${block.code}`}
+                setAsideItemNames={setAsideItemNames}
+                pastExpeditions={pastExpeditions}
+              />
+            )
           }
           myInfo={
             viewerResident ? (
@@ -210,6 +217,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                     residences={joinOptions}
                     boundary={block.boundary}
                     hiddenSignupPrompts={block.hiddenSignupPrompts}
+                    autoApproveJoins={block.autoApproveJoins}
                     canvasType={block.canvasType}
                     signedInEmail={user?.email ?? null}
                   />
@@ -250,6 +258,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
               residences={joinOptions}
               boundary={block.boundary}
               hiddenSignupPrompts={block.hiddenSignupPrompts}
+              autoApproveJoins={block.autoApproveJoins}
               canvasType={block.canvasType}
               signedInEmail={user?.email ?? null}
             />
