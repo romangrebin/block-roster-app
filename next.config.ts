@@ -19,7 +19,7 @@ const contentSecurityPolicy = [
   // NOT match — both forms are listed. MapLibre fetches raster tiles via fetch(), so the CARTO
   // host has to be in connect-src too, not just img-src.
   "img-src 'self' data: blob: https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com https://fonts.openmaptiles.org https://nominatim.openstreetmap.org https://overpass-api.de https://overpass.kumi.systems",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com https://fonts.openmaptiles.org https://nominatim.openstreetmap.org https://overpass-api.de https://maps.mail.ru",
   "worker-src 'self' blob:",
   "base-uri 'self'",
   "form-action 'self'",

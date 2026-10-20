@@ -12,6 +12,9 @@ import {
 
 type Status = 'idle' | 'loading' | 'loaded' | 'failed'
 
+const OSM_SLOWNESS_WARNING =
+  "Heads up: this uses OpenStreetMap's free public servers, which are often overloaded. A search can take a minute or more, and it may not work at all."
+
 /**
  * Click-to-add address suggestions within the community's drawn boundary, via OSM's free
  * Overpass API — including each one's shape, when OSM has the address tagged directly on a
@@ -131,23 +134,34 @@ export default function SuggestedAddresses({
 
   if (status === 'idle') {
     return (
-      <button
-        onClick={handleSearch}
-        className="text-sm px-4 py-1.5 rounded-full border border-border text-ink hover:bg-surface-muted transition-colors cursor-pointer font-medium"
-      >
-        Search addresses within your community boundary
-      </button>
+      <div className="space-y-1.5">
+        <button
+          onClick={handleSearch}
+          className="text-sm px-4 py-1.5 rounded-full border border-border text-ink hover:bg-surface-muted transition-colors cursor-pointer font-medium"
+        >
+          Search addresses within your community boundary
+        </button>
+        <p className="text-sm text-muted">{OSM_SLOWNESS_WARNING}</p>
+      </div>
     )
   }
 
   if (status === 'loading') {
-    return <p className="text-sm text-muted">Searching for addresses within your community boundary…</p>
+    return (
+      <div className="space-y-1">
+        <p className="text-sm text-ink">Searching for addresses within your community boundary…</p>
+        <p className="text-sm text-muted">{OSM_SLOWNESS_WARNING}</p>
+      </div>
+    )
   }
 
   if (status === 'failed') {
     return (
       <div className="space-y-1.5">
-        <p className="text-sm text-red-600">Couldn&apos;t reach OpenStreetMap — try again?</p>
+        <p className="text-sm text-red-600">
+          OpenStreetMap didn&apos;t respond. Its free servers are often overloaded. Try again later, or
+          add residences by name or by drawing them instead.
+        </p>
         <button
           onClick={handleSearch}
           className="text-sm px-4 py-1.5 rounded-full border border-border text-ink hover:bg-surface-muted transition-colors cursor-pointer font-medium"

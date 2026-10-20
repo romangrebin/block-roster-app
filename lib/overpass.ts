@@ -8,12 +8,16 @@ import type { Feature, Polygon, MultiPolygon } from 'geojson'
  * with real polygon geometry (not just an address point). Purely a suggestion: failures should
  * degrade silently, never block adding residences (or drawing their shapes) the manual way.
  *
- * Tries two public mirrors in order — Roman hit several failures in a row against a single
- * mirror in practice (free/community-run instances are just flaky sometimes), so one retry
- * against a different host before actually giving up is worth the extra few seconds.
+ * Tries two public mirrors in order. These free, volunteer-run servers are chronically slow:
+ * measured 2026-10-20, overpass-api.de took 30–45s even for a tiny query, maps.mail.ru varied
+ * between ~20s and an instant 504, and overpass.kumi.systems (the old fallback) never answered.
+ * The UI warns that it's slow and may fail.
  */
 
-const OVERPASS_ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+]
 
 // A failsafe for a really big (or unusually address-dense) community boundary — Overpass itself
 // has no result limit on this query, and a huge response is slow to transfer/render for no real
@@ -131,10 +135,10 @@ function wayToPolygon(geometry: { lat: number; lon: number }[]): Feature<Polygon
   }
 }
 
-// Kept a bit above the query's own [timeout:20] so a slow-but-alive server has a chance to
-// finish and respond before this gives up on it client-side — aborting first would waste the
-// attempt for no reason.
-const OVERPASS_TIMEOUT_MS = 25_000
+// Far above the query's own [timeout:20] because that limit covers only server-side run time,
+// not time spent waiting in the server's queue, which is where most of the 30–45s goes. At the
+// old 25s, nearly every request was abandoned just before its answer arrived.
+const OVERPASS_TIMEOUT_MS = 90_000
 
 async function queryOverpass(endpoint: string, query: string): Promise<{ elements?: OverpassElement[] }> {
   const controller = new AbortController()
