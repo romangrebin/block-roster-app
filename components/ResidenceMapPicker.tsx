@@ -7,10 +7,27 @@ import * as turf from '@turf/turf'
 import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson'
 import { addCommunityBoundaryLayers, BASEMAP_STYLE } from '@/lib/mapStyle'
 
-export type ShapedResidence = { id: string; label: string; shape: Feature<Polygon | MultiPolygon> }
+export type ShapedResidence = {
+  id: string
+  label: string
+  shape: Feature<Polygon | MultiPolygon>
+  hasResidents: boolean
+}
 
 const DEFAULT_FILL = '#c2542e'
 const SELECTED_FILL = '#7a3319'
+const REGISTERED_FILL = '#8a8178'
+
+function fillColorFor(selectedId: string): maplibregl.ExpressionSpecification {
+  return [
+    'case',
+    ['==', ['get', 'residenceId'], selectedId],
+    SELECTED_FILL,
+    ['get', 'hasResidents'],
+    REGISTERED_FILL,
+    DEFAULT_FILL,
+  ]
+}
 
 /**
  * "Tap your house on a map" — a read-only click-to-select map of every residence that has a
@@ -44,7 +61,7 @@ export default function ResidenceMapPicker({
       features: residences.map((r) => ({
         type: 'Feature',
         geometry: r.shape.geometry,
-        properties: { residenceId: r.id },
+        properties: { residenceId: r.id, hasResidents: r.hasResidents },
       })),
     }
     const bounds = turf.bbox(featureCollection) as [number, number, number, number]
@@ -70,13 +87,13 @@ export default function ResidenceMapPicker({
         id: 'residences-fill',
         type: 'fill',
         source: 'residences',
-        paint: { 'fill-color': DEFAULT_FILL, 'fill-opacity': 0.35 },
+        paint: { 'fill-color': fillColorFor(''), 'fill-opacity': 0.35 },
       })
       map.addLayer({
         id: 'residences-outline',
         type: 'line',
         source: 'residences',
-        paint: { 'line-color': DEFAULT_FILL, 'line-width': 2 },
+        paint: { 'line-color': fillColorFor(''), 'line-width': 2 },
       })
       map.on('click', 'residences-fill', (e) => {
         const residenceId = e.features?.[0]?.properties?.residenceId
@@ -104,14 +121,8 @@ export default function ResidenceMapPicker({
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.getLayer('residences-fill')) return
-    const colorByResidence = [
-      'case',
-      ['==', ['get', 'residenceId'], selectedId],
-      SELECTED_FILL,
-      DEFAULT_FILL,
-    ]
-    map.setPaintProperty('residences-fill', 'fill-color', colorByResidence)
-    map.setPaintProperty('residences-outline', 'line-color', colorByResidence)
+    map.setPaintProperty('residences-fill', 'fill-color', fillColorFor(selectedId))
+    map.setPaintProperty('residences-outline', 'line-color', fillColorFor(selectedId))
   }, [selectedId])
 
   return <div ref={containerRef} className="w-full h-full" />

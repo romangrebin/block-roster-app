@@ -50,7 +50,7 @@ export default async function JoinCompletePage({
       <p className="text-2xl font-medium text-ink">You&apos;re registered!</p>
       {autoApproved ? (
         <p className="text-lg text-muted">
-          You&apos;re approved automatically since you&apos;re already a steward here. Visit{' '}
+          You&apos;re approved and in. Visit{' '}
           <Link href={`/${code}`} className="text-accent underline">
             this community&apos;s page
           </Link>{' '}

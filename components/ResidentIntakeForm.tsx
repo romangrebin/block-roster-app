@@ -142,7 +142,7 @@ export default function ResidentIntakeForm({
         <p className="text-lg font-medium text-ink">You&apos;re registered!</p>
         <p className="text-base text-muted">
           {registered.autoApproved
-            ? "You're approved automatically since you're already a steward here."
+            ? "You're approved and in. Refresh the page to see your neighbors."
             : 'A steward will approve you soon — no further action needed.'}
         </p>
       </div>
@@ -175,7 +175,10 @@ export default function ResidentIntakeForm({
     <form onSubmit={handleRegister} className="space-y-4">
       {showMap && (
         <div className="space-y-1.5">
-          <p className="text-sm text-muted">Tap your house on the map, or pick from the list below.</p>
+          <p className="text-sm text-muted">
+            Tap your house on the map, or pick from the list below. Gray houses already have
+            registered residents.
+          </p>
           <div className="h-72 rounded-xl overflow-hidden border border-border">
             <ResidenceMapPicker residences={shapedResidences} boundary={boundary} selectedId={residenceId} onSelect={setResidenceId} />
           </div>
