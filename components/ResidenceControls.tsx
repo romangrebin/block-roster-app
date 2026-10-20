@@ -14,7 +14,7 @@ const inputClass =
  * canvas) hands the residence's shape to the big map for editing — a deliberate second step,
  * not an automatic view switch, which Roman found jarring on a phone. Save commits both the
  * rename and, if a shape edit is in progress, the shape (via `onShapeEditCommand` — the map has
- * no Save/Cancel of its own, since canceling elsewhere used to leave it stuck mid-edit).
+ * no Save/Cancel of its own, so a shape edit can't be left stuck mid-edit).
  */
 export default function ResidenceControls({
   residenceId,

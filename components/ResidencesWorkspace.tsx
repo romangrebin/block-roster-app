@@ -16,14 +16,8 @@ type Entry = { residence: Residence; residents: ResidentRow[] }
  * a suggested address's shape can preview on the map while its checkbox is (or isn't) checked —
  * otherwise unrelated server-rendered siblings with no shared state to carry that link.
  *
- * AddResidenceTools sits full-width *above* ResidencesSection, not in its own side column — it
- * used to share a `[380px_1fr]` grid with it back when it held two always-visible components
- * (AddResidencesForm + SuggestedAddresses) tall enough to look intentional next to the map. Once
- * that collapsed to a single button, the same grid left a tall, empty, unused column below it —
- * the button was short but the column still spanned the full row height next to the much-taller
- * map. Stacking instead means the empty space doesn't get reserved as a column in the first
- * place, which is the actual space-saving Roman was after (a shorter button alone doesn't help if
- * the layout still allocates the same footprint next to it).
+ * AddResidenceTools is stacked full-width above ResidencesSection rather than in a side column,
+ * since a column beside the tall map would reserve empty space below its single button.
  */
 export default function ResidencesWorkspace({
   isSteward,

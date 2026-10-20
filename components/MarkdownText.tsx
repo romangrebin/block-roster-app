@@ -3,8 +3,8 @@ import remarkBreaks from 'remark-breaks'
 
 /**
  * Renders steward-authored free text (community blurb, about-this-community) as Markdown —
- * bold, links, lists. remarkBreaks keeps a single newline as a line break, matching the
- * whitespace-pre-wrap behavior this replaced, since stewards typed that text expecting it.
+ * bold, links, lists. remarkBreaks keeps a single newline as a line break, since stewards type
+ * text expecting plain line breaks to show.
  * External links open in a new tab since they're leaving the community page.
  */
 export default function MarkdownText({ text, className }: { text: string; className?: string }) {

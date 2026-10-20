@@ -159,10 +159,8 @@ export default function ResidencesOverviewMap({
   // input that then appears — Roman noticed it wasn't obvious where to type the new residence's
   // label ("currently just the little thing on the top right").
   const [justFinishedDrawing, setJustFinishedDrawing] = useState(false)
-  // Neither shape-saving fetch used to check its own response — a failed PATCH (auth hiccup,
-  // transient network error, whatever) would silently do nothing while the UI had already moved
-  // on, which looks exactly like "the shape disappeared and never came back." Surfaced instead of
-  // silently swallowed.
+  // A failed shape save must be shown: the UI has already moved on, so a silent failure looks like
+  // the shape disappeared.
   const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {

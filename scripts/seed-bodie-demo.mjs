@@ -181,7 +181,7 @@ const CAST = [
   },
 ]
 
-// Names that used to be in CAST, so a re-seed also removes them after a character is swapped out.
+// Swapped-out characters, removed on re-seed so they don't linger in the demo.
 const FORMER_CAST_NAMES = ['David Victor Cain', 'August Seiler', 'Charlie Donnelly', 'Sam Hartley']
 
 function check(result, what) {
