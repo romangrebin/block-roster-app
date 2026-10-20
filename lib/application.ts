@@ -424,3 +424,81 @@ export async function getResidentDirectory(blockId: string): Promise<DirectoryEn
 
   return residences.map((residence) => ({ residence, residents: residentsByResidence.get(residence.id) ?? [] }))
 }
+
+const BORROW_REQUEST_COOLDOWN_MS = 24 * 60 * 60 * 1000
+
+export type BorrowRequestResult =
+  | { error: string; status: number }
+  | { ownerEmailed: boolean; alreadyRequested: boolean }
+
+/**
+ * "Ask to borrow": records the request and emails the item's owner, with Reply-To set to the
+ * requester so the two can sort out a handoff directly. A repeat ask within a day is recorded as
+ * already sent rather than emailing again. An owner with no email on file isn't emailed; the
+ * request is still recorded.
+ */
+export async function requestToBorrow(itemId: string, userId: string): Promise<BorrowRequestResult> {
+  const repo = getRepository()
+  const item = await repo.items.getById(itemId)
+  const owner = item ? await repo.residents.getById(item.residentId) : null
+  const residence = owner ? await repo.residences.getById(owner.residenceId) : null
+  const block = residence ? await repo.blocks.getById(residence.blockId) : null
+  if (!item || !owner || !block || owner.status !== 'approved') return { error: 'Item not found', status: 404 }
+  if (!block.lendingLibraryEnabled || !block.borrowRequestsEnabled) {
+    return { error: 'Borrow requests are turned off here', status: 403 }
+  }
+
+  const requester = await resolveApprovedResident(block.id, userId)
+  if (!requester) return { error: 'Not authorized', status: 403 }
+  if (requester.id === owner.id) return { error: "That's your own item", status: 400 }
+
+  const existing = await repo.borrowRequests.get(item.id, requester.id)
+  if (existing && Date.now() - Date.parse(existing.requestedAt) < BORROW_REQUEST_COOLDOWN_MS) {
+    return { ownerEmailed: false, alreadyRequested: true }
+  }
+  await repo.borrowRequests.record(item.id, requester.id)
+  const ownerEmailed = await notifyOwnerOfBorrowRequest(block, item.name, owner, requester)
+  return { ownerEmailed, alreadyRequested: false }
+}
+
+async function notifyOwnerOfBorrowRequest(
+  block: Block,
+  itemName: string,
+  owner: Resident,
+  requester: Resident
+): Promise<boolean> {
+  const repo = getRepository()
+  const [ownerContacts, requesterContacts] = await Promise.all([
+    repo.contactMethods.listByResident(owner.id),
+    repo.contactMethods.listByResident(requester.id),
+  ])
+  const ownerEmail = ownerContacts.find((c) => c.type === 'email' && c.verifiedAt)
+  if (!ownerEmail) return false
+  const requesterEmail = requesterContacts.find((c) => c.type === 'email' && c.verifiedAt)
+
+  const safeOwnerName = escapeHtml(owner.name)
+  const safeRequesterName = escapeHtml(requester.name)
+  const safeItemName = escapeHtml(itemName)
+  const safeBlockName = escapeHtml(block.name)
+  const replyLine = requesterEmail
+    ? `<p>Reply to this email to reach ${safeRequesterName} directly.</p>`
+    : ''
+  await sendEmail({
+    to: [ownerEmail.value],
+    subject: `${requester.name} would like to borrow your ${itemName}`,
+    html: `<p>Hi ${safeOwnerName},</p><p><strong>${safeRequesterName}</strong>, your neighbor in ${safeBlockName}, would like to borrow your <strong>${safeItemName}</strong> from the Lending Library.</p>${replyLine}`,
+    replyTo: requesterEmail?.value,
+  })
+  return true
+}
+
+/** Items this resident has asked to borrow, leaving out asks older than a day unless asked to. */
+export async function listRequestedItemIds(
+  requesterId: string,
+  { includeExpired }: { includeExpired: boolean }
+): Promise<string[]> {
+  const requests = await getRepository().borrowRequests.listByRequester(requesterId)
+  return requests
+    .filter((r) => includeExpired || Date.now() - Date.parse(r.requestedAt) < BORROW_REQUEST_COOLDOWN_MS)
+    .map((r) => r.itemId)
+}

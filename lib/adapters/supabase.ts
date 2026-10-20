@@ -8,6 +8,7 @@ import type {
   ContactMethodRepository,
   StewardRepository,
   ItemRepository,
+  BorrowRequestRepository,
   BlockRosterRepository,
 } from '../repository'
 import type {
@@ -23,6 +24,7 @@ import type {
   StewardStatus,
   Item,
   ItemCategory,
+  BorrowRequest,
 } from '../types'
 
 /**
@@ -44,6 +46,7 @@ type BlockRow = {
   lending_library_enabled: boolean
   auto_approve_joins: boolean
   hidden_signup_prompts: SignupPromptKey[]
+  borrow_requests_enabled: boolean
   code: string
   public_blurb: string | null
   private_notes: string | null
@@ -109,6 +112,12 @@ type ItemRow = {
   updated_at: string | null
 }
 
+type BorrowRequestRow = {
+  item_id: string
+  requester_id: string
+  requested_at: string
+}
+
 // ── Row -> domain mappers ──
 
 function toBlock(row: BlockRow): Block {
@@ -123,6 +132,7 @@ function toBlock(row: BlockRow): Block {
     lendingLibraryEnabled: row.lending_library_enabled,
     autoApproveJoins: row.auto_approve_joins,
     hiddenSignupPrompts: row.hidden_signup_prompts,
+    borrowRequestsEnabled: row.borrow_requests_enabled,
     code: row.code,
     publicBlurb: row.public_blurb,
     privateNotes: row.private_notes,
@@ -209,6 +219,10 @@ function toItem(row: ItemRow): Item {
   }
 }
 
+function toBorrowRequest(row: BorrowRequestRow): BorrowRequest {
+  return { itemId: row.item_id, requesterId: row.requester_id, requestedAt: row.requested_at }
+}
+
 function requireNoError<T>(data: T | null, error: { message: string } | null, context: string): T {
   if (error) throw new Error(`[supabase adapter] ${context}: ${error.message}`)
   if (data === null) throw new Error(`[supabase adapter] ${context}: no row returned`)
@@ -279,6 +293,7 @@ function createBlockRepository(client: SupabaseClient): BlockRepository {
       if (input.lendingLibraryEnabled !== undefined) patch.lending_library_enabled = input.lendingLibraryEnabled
       if (input.autoApproveJoins !== undefined) patch.auto_approve_joins = input.autoApproveJoins
       if (input.hiddenSignupPrompts !== undefined) patch.hidden_signup_prompts = input.hiddenSignupPrompts
+      if (input.borrowRequestsEnabled !== undefined) patch.borrow_requests_enabled = input.borrowRequestsEnabled
       const { data, error } = await client.from('blocks').update(patch).eq('id', id).select().single()
       if (error) {
         if (error.code === UNIQUE_VIOLATION) throw new Error('That code is already taken.')
@@ -641,6 +656,38 @@ function createItemRepository(client: SupabaseClient): ItemRepository {
   }
 }
 
+function createBorrowRequestRepository(client: SupabaseClient): BorrowRequestRepository {
+  return {
+    async get(itemId, requesterId) {
+      const { data, error } = await client
+        .from('borrow_requests')
+        .select()
+        .eq('item_id', itemId)
+        .eq('requester_id', requesterId)
+        .maybeSingle()
+      if (error) throw new Error(`[supabase adapter] borrowRequests.get: ${error.message}`)
+      return data ? toBorrowRequest(data as BorrowRequestRow) : null
+    },
+    async record(itemId, requesterId) {
+      const { data, error } = await client
+        .from('borrow_requests')
+        .upsert({ item_id: itemId, requester_id: requesterId, requested_at: new Date().toISOString() })
+        .select()
+        .single()
+      return toBorrowRequest(requireNoError(data as BorrowRequestRow | null, error, 'borrowRequests.record'))
+    },
+    async listByRequester(requesterId) {
+      const { data, error } = await client
+        .from('borrow_requests')
+        .select()
+        .eq('requester_id', requesterId)
+        .order('requested_at', { ascending: true })
+      if (error) throw new Error(`[supabase adapter] borrowRequests.listByRequester: ${error.message}`)
+      return (data as BorrowRequestRow[]).map(toBorrowRequest)
+    },
+  }
+}
+
 export function createSupabaseRepository(client: SupabaseClient): BlockRosterRepository {
   return {
     blocks: createBlockRepository(client),
@@ -649,5 +696,6 @@ export function createSupabaseRepository(client: SupabaseClient): BlockRosterRep
     contactMethods: createContactMethodRepository(client),
     stewards: createStewardRepository(client),
     items: createItemRepository(client),
+    borrowRequests: createBorrowRequestRepository(client),
   }
 }

@@ -27,7 +27,7 @@ It's November 1879. The woodpiles are nearly gone, and a cord costs twenty dolla
 
 You said you'd go, it's a good way to be of service to the community and make a name for yourself. You'll have to choose the other three carefully: who they are, what they know, what they'd lend.
 
-*How to play: get to know your neighbors on the map and in the Lending Library. When you're ready, choose your party: three neighbors to go with you, and up to two things to borrow from those who stay.*`
+*How to play: get to know your neighbors on the map, check the Lending Library for anything worth borrowing, then head to the **Expedition** tab to choose your party: three neighbors to go with you, and up to two borrowed things.*`
 
 // Keyed by residence label exactly as drawn in the app. Real people keep their documented facts;
 // voices, feelings, and invented occupants are fiction (see the draft's ground rules).
@@ -216,7 +216,15 @@ if (existingCast.length > 0) {
 }
 
 check(
-  await client.from('blocks').update({ public_blurb: PUBLIC_DESCRIPTION, private_notes: PRIVATE_DESCRIPTION }).eq('id', block.id),
+  await client
+    .from('blocks')
+    .update({
+      public_blurb: PUBLIC_DESCRIPTION,
+      private_notes: PRIVATE_DESCRIPTION,
+      lending_library_enabled: true,
+      borrow_requests_enabled: true,
+    })
+    .eq('id', block.id),
   'set descriptions'
 )
 

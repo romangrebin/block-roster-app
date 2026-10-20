@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-type TabKey = 'community' | 'library' | 'my-info' | 'manage'
+type TabKey = 'community' | 'library' | 'expedition' | 'my-info' | 'manage'
 
 /**
  * Splits the community page into tabs once there's more than one thing to show a signed-in
@@ -21,17 +21,20 @@ type TabKey = 'community' | 'library' | 'my-info' | 'manage'
 export default function CommunityTabs({
   community,
   library,
+  expedition,
   myInfo,
   manage,
 }: {
   community: ReactNode
   library?: ReactNode
+  expedition?: ReactNode
   myInfo?: ReactNode
   manage?: ReactNode
 }) {
   const tabs: { key: TabKey; label: string; content: ReactNode }[] = [
     { key: 'community', label: 'Community', content: community },
     ...(library ? [{ key: 'library' as const, label: 'Lending Library', content: library }] : []),
+    ...(expedition ? [{ key: 'expedition' as const, label: 'Expedition', content: expedition }] : []),
     ...(myInfo ? [{ key: 'my-info' as const, label: 'My info', content: myInfo }] : []),
     ...(manage ? [{ key: 'manage' as const, label: 'Manage', content: manage }] : []),
   ]
@@ -44,12 +47,12 @@ export default function CommunityTabs({
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActive(tab.key)}
-            className={`px-4 py-2 text-base font-medium cursor-pointer border-b-2 -mb-px transition-colors ${
+            className={`px-4 py-2 text-base font-medium whitespace-nowrap cursor-pointer border-b-2 -mb-px transition-colors ${
               active === tab.key
                 ? 'border-accent text-accent'
                 : 'border-transparent text-muted hover:text-ink'

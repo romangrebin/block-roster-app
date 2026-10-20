@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getUserFromServerComponent } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
-import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory } from '@/lib/application'
+import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory, listRequestedItemIds } from '@/lib/application'
 import type { Resident, ContactMethod } from '@/lib/types'
 import ResidentIntakeForm from '@/components/ResidentIntakeForm'
 import JoinLinkBox from '@/components/JoinLinkBox'
@@ -13,6 +13,8 @@ import CommunityTabs from '@/components/CommunityTabs'
 import LendingLibrarySection, { type LibraryItem } from '@/components/LendingLibrarySection'
 import MarkdownText from '@/components/MarkdownText'
 import { pickProfile } from '@/lib/residentProfile'
+import { EXPEDITION_BLOCK_CODE } from '@/lib/expedition'
+import ExpeditionGame from '@/components/ExpeditionGame'
 
 type ResidentRow = { resident: Resident; contacts: ContactMethod[] }
 
@@ -109,6 +111,16 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
     })
   }
 
+  const isExpedition = block.code === EXPEDITION_BLOCK_CODE
+  // In the Expedition every request stays set aside; elsewhere the button resets after a day.
+  const requestedItemIds =
+    block.borrowRequestsEnabled && viewerResident
+      ? await listRequestedItemIds(viewerResident.id, { includeExpired: isExpedition })
+      : []
+  const setAsideItemNames = libraryItems
+    .filter(({ item }) => requestedItemIds.includes(item.id))
+    .map(({ item }) => item.name)
+
   return (
     <PageContainer className="space-y-8">
       <div>
@@ -157,8 +169,14 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                 blockId={block.id}
                 items={libraryItems}
                 viewerResidentId={viewerResident?.id ?? null}
+                borrowRequestsEnabled={block.borrowRequestsEnabled}
+                requestedItemIds={requestedItemIds}
+                forExpedition={isExpedition}
               />
             )
+          }
+          expedition={
+            isExpedition && <ExpeditionGame communityPath={`/${block.code}`} setAsideItemNames={setAsideItemNames} />
           }
           myInfo={
             viewerResident ? (
@@ -210,6 +228,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                   privateNotes={block.privateNotes}
                   residentExportEnabled={block.residentExportEnabled}
                   lendingLibraryEnabled={block.lendingLibraryEnabled}
+                  borrowRequestsEnabled={block.borrowRequestsEnabled}
                   autoApproveJoins={block.autoApproveJoins}
                   hiddenSignupPrompts={block.hiddenSignupPrompts}
                 />

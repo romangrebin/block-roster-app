@@ -12,6 +12,7 @@ import type {
   StewardStatus,
   Item,
   ItemInput,
+  BorrowRequest,
 } from './types'
 
 /**
@@ -107,6 +108,13 @@ export interface ItemRepository {
   delete(id: string): Promise<void>
 }
 
+export interface BorrowRequestRepository {
+  get(itemId: string, requesterId: string): Promise<BorrowRequest | null>
+  // Inserts the request, or refreshes requestedAt if this resident already asked for this item.
+  record(itemId: string, requesterId: string): Promise<BorrowRequest>
+  listByRequester(requesterId: string): Promise<BorrowRequest[]>
+}
+
 export type BlockRosterRepository = {
   blocks: BlockRepository
   residences: ResidenceRepository
@@ -114,4 +122,5 @@ export type BlockRosterRepository = {
   contactMethods: ContactMethodRepository
   stewards: StewardRepository
   items: ItemRepository
+  borrowRequests: BorrowRequestRepository
 }

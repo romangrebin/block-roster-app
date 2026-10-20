@@ -14,6 +14,62 @@ export type LibraryItem = {
   ownerContacts: ContactMethod[]
 }
 
+type BorrowRequestResponse = { ownerEmailed: boolean; alreadyRequested: boolean }
+
+function borrowConfirmation(response: BorrowRequestResponse, ownerName: string) {
+  if (response.alreadyRequested) return 'You already asked today.'
+  if (response.ownerEmailed) return `Sent! We emailed ${ownerName} and shared your email so they can reply.`
+  return `${ownerName} has no email on file, so reach out to them directly.`
+}
+
+/** In the Expedition demo the owners have no email, so a request just sets the item aside for the trip. */
+function AskToBorrowButton({
+  itemId,
+  ownerName,
+  requested,
+  forExpedition,
+}: {
+  itemId: string
+  ownerName: string
+  requested: boolean
+  forExpedition: boolean
+}) {
+  const { isPending, saveAndRefresh } = useSaveAndRefresh()
+  const [confirmation, setConfirmation] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleAsk = () => {
+    setError(null)
+    saveAndRefresh(async () => {
+      const res = await fetch(`/api/items/${itemId}/borrow-request`, { method: 'POST' })
+      const body = await res.json()
+      if (!res.ok) {
+        setError(body.error ?? 'Failed to send the request')
+        return false
+      }
+      setConfirmation(borrowConfirmation(body, ownerName))
+      return true
+    })
+  }
+
+  if (forExpedition && requested) {
+    return <p className="text-sm text-ink">Set aside for the expedition. You&apos;ll take two.</p>
+  }
+  if (confirmation) return <p className="text-sm text-ink">{confirmation}</p>
+  return (
+    <div className="space-y-1">
+      <button
+        onClick={handleAsk}
+        disabled={isPending || requested}
+        className="text-sm font-medium text-accent border border-accent rounded-full px-3 py-1 hover:bg-accent hover:text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {isPending ? 'Asking…' : requested ? 'Requested' : 'Ask to borrow'}
+      </button>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+    </div>
+  )
+}
+
 /**
  * The Lending Library tab: Browse (everyone's items) and My items (add/remove your own),
  * toggled the same way the Residences List/Map view is. Only signed-in approved residents get
@@ -24,10 +80,16 @@ export default function LendingLibrarySection({
   blockId,
   items,
   viewerResidentId,
+  borrowRequestsEnabled,
+  requestedItemIds,
+  forExpedition,
 }: {
   blockId: string
   items: LibraryItem[]
   viewerResidentId: string | null
+  borrowRequestsEnabled: boolean
+  requestedItemIds: string[]
+  forExpedition: boolean
 }) {
   const { isPending, saveAndRefresh } = useSaveAndRefresh()
   const [view, setView] = useState<'browse' | 'mine'>('browse')
@@ -118,6 +180,14 @@ export default function LendingLibrarySection({
                   ))}
                 </p>
               )}
+              {view === 'browse' && borrowRequestsEnabled && viewerResidentId && item.residentId !== viewerResidentId && (
+                <AskToBorrowButton
+                  itemId={item.id}
+                  ownerName={ownerName}
+                  requested={requestedItemIds.includes(item.id)}
+                  forExpedition={forExpedition}
+                />
+              )}
             </li>
           ))}
         </ul>
@@ -125,7 +195,13 @@ export default function LendingLibrarySection({
 
       {view === 'browse' && (
         <div className="text-sm text-muted space-y-1">
-          <p>If you have an item you&apos;d like to borrow, reach out to your neighbors! They&apos;re very friendly.</p>
+          <p>
+            {forExpedition
+              ? 'Ask to borrow sets an item aside for the expedition. You choose two when you pick your party in the Expedition tab.'
+              : borrowRequestsEnabled
+                ? 'Asking to borrow emails the owner and shares your email with them so they can reply.'
+                : "If you have an item you'd like to borrow, reach out to your neighbors! They're very friendly."}
+          </p>
           {viewerResidentId && <p>Have something you&apos;re willing to share? Add it under &quot;My items&quot;.</p>}
         </div>
       )}

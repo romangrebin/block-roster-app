@@ -15,7 +15,8 @@ export default function MarkdownText({ text, className }: { text: string; classN
         components={{
           // react-markdown passes a `node` (the mdast node) that must not be spread onto the DOM element.
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+          a: ({ node, ...props }) =>
+            props.href?.startsWith('/') ? <a {...props} /> : <a {...props} target="_blank" rel="noopener noreferrer" />,
           // Tailwind's preflight strips default list-style/margin from ul/ol — restore it here.
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-5 space-y-1" />,

@@ -27,6 +27,7 @@ export default function BlockContentForm({
   privateNotes: initialPrivateNotes,
   residentExportEnabled: initialResidentExportEnabled,
   lendingLibraryEnabled: initialLendingLibraryEnabled,
+  borrowRequestsEnabled: initialBorrowRequestsEnabled,
   autoApproveJoins: initialAutoApproveJoins,
   hiddenSignupPrompts: initialHiddenSignupPrompts,
 }: {
@@ -37,6 +38,7 @@ export default function BlockContentForm({
   privateNotes: string | null
   residentExportEnabled: boolean
   lendingLibraryEnabled: boolean
+  borrowRequestsEnabled: boolean
   autoApproveJoins: boolean
   hiddenSignupPrompts: SignupPromptKey[]
 }) {
@@ -50,6 +52,7 @@ export default function BlockContentForm({
   const [privateNotes, setPrivateNotes] = useState(initialPrivateNotes ?? '')
   const [residentExportEnabled, setResidentExportEnabled] = useState(initialResidentExportEnabled)
   const [lendingLibraryEnabled, setLendingLibraryEnabled] = useState(initialLendingLibraryEnabled)
+  const [borrowRequestsEnabled, setBorrowRequestsEnabled] = useState(initialBorrowRequestsEnabled)
   const [autoApproveJoins, setAutoApproveJoins] = useState(initialAutoApproveJoins)
   const [hiddenSignupPrompts, setHiddenSignupPrompts] = useState(initialHiddenSignupPrompts)
 
@@ -65,6 +68,7 @@ export default function BlockContentForm({
     privateNotes !== (initialPrivateNotes ?? '') ||
     residentExportEnabled !== initialResidentExportEnabled ||
     lendingLibraryEnabled !== initialLendingLibraryEnabled ||
+    borrowRequestsEnabled !== initialBorrowRequestsEnabled ||
     autoApproveJoins !== initialAutoApproveJoins ||
     [...hiddenSignupPrompts].sort().join() !== [...initialHiddenSignupPrompts].sort().join()
 
@@ -85,6 +89,7 @@ export default function BlockContentForm({
           privateNotes,
           residentExportEnabled,
           lendingLibraryEnabled,
+          borrowRequestsEnabled,
           autoApproveJoins,
           hiddenSignupPrompts,
         }),
@@ -194,6 +199,22 @@ export default function BlockContentForm({
           <span className="text-muted font-normal">(residents can list items to lend each other)</span>
         </span>
       </label>
+      {lendingLibraryEnabled && (
+        <label className="flex items-center gap-2.5 cursor-pointer ml-6">
+          <input
+            type="checkbox"
+            checked={borrowRequestsEnabled}
+            onChange={(e) => setBorrowRequestsEnabled(e.target.checked)}
+            className="w-4 h-4 accent-accent cursor-pointer"
+          />
+          <span className="text-base text-ink">
+            Show an &quot;Ask to borrow&quot; button{' '}
+            <span className="text-muted font-normal">
+              (emails the owner and shares the asker&apos;s email with them. Off: neighbors reach out directly)
+            </span>
+          </span>
+        </label>
+      )}
       <label className="flex items-center gap-2.5 cursor-pointer">
         <input
           type="checkbox"

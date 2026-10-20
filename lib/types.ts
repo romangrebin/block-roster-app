@@ -30,6 +30,8 @@ export type Block = {
   // Prompts left off the sign-up form, only to keep sign-up short. My info always offers every
   // prompt, and resident cards show every populated field regardless.
   hiddenSignupPrompts: SignupPromptKey[]
+  // Shows "Ask to borrow" on Lending Library items, which emails the owner.
+  borrowRequestsEnabled: boolean
   // Pseudo-secret slug for the public/private landing page at /<code> — see lib/blockCode.ts.
   code: string
   // Shown to anyone who knows the code, no sign-in required.
@@ -51,6 +53,7 @@ export type BlockInput = {
   lendingLibraryEnabled?: boolean
   autoApproveJoins?: boolean
   hiddenSignupPrompts?: SignupPromptKey[]
+  borrowRequestsEnabled?: boolean
 }
 
 export type Residence = {
@@ -188,4 +191,10 @@ export type ItemInput = {
   name: string
   description?: string | null
   category?: ItemCategory
+}
+
+export type BorrowRequest = {
+  itemId: string
+  requesterId: string
+  requestedAt: string
 }
