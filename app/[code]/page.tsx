@@ -181,6 +181,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                     code={block.code}
                     residences={joinOptions}
                     boundary={block.boundary}
+                    hiddenSignupPrompts={block.hiddenSignupPrompts}
                     canvasType={block.canvasType}
                     signedInEmail={user?.email ?? null}
                   />
@@ -201,6 +202,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                   residentExportEnabled={block.residentExportEnabled}
                   lendingLibraryEnabled={block.lendingLibraryEnabled}
                   autoApproveJoins={block.autoApproveJoins}
+                  hiddenSignupPrompts={block.hiddenSignupPrompts}
                 />
               </div>
             )
@@ -218,6 +220,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
               code={block.code}
               residences={joinOptions}
               boundary={block.boundary}
+              hiddenSignupPrompts={block.hiddenSignupPrompts}
               canvasType={block.canvasType}
               signedInEmail={user?.email ?? null}
             />

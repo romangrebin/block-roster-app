@@ -1,4 +1,4 @@
-import type { ResidentProfile } from './types'
+import type { ResidentProfile, SignupPromptKey } from './types'
 
 /**
  * Shared input hygiene for the API routes. Nothing here is an authorization check — it's the
@@ -36,6 +36,20 @@ export const MAX_TEXT = {
  */
 export function cappedText(raw: unknown, max: number): string {
   return typeof raw === 'string' ? raw.trim().slice(0, max) : ''
+}
+
+export const SIGNUP_PROMPT_KEYS: readonly SignupPromptKey[] = [
+  'blurb',
+  'movedInYear',
+  'favoriteSpot',
+  'countMeInFor',
+  'askMeAbout',
+]
+
+/** Keeps only recognized prompt keys, deduplicated. Anything else in untrusted JSON is dropped. */
+export function parseSignupPromptKeys(raw: unknown): SignupPromptKey[] {
+  if (!Array.isArray(raw)) return []
+  return SIGNUP_PROMPT_KEYS.filter((key) => raw.includes(key))
 }
 
 export const EARLIEST_MOVED_IN_YEAR = 1940

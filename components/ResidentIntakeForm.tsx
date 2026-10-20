@@ -6,9 +6,9 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import ResidenceMapPicker from './ResidenceMapPicker'
 import ResidentProfileFields from './ResidentProfileFields'
 import { EMPTY_PROFILE } from '@/lib/residentProfile'
-import { MAX_TEXT } from '@/lib/validation'
+import { MAX_TEXT, SIGNUP_PROMPT_KEYS } from '@/lib/validation'
 import CharCount from './CharCount'
-import type { CanvasType, ContactVisibility } from '@/lib/types'
+import type { CanvasType, ContactVisibility, SignupPromptKey } from '@/lib/types'
 
 const visibilitySelectClass =
   'text-sm border border-border rounded-lg px-2 py-1 bg-surface focus:outline-none focus:ring-2 focus:ring-accent'
@@ -52,12 +52,14 @@ export default function ResidentIntakeForm({
   code,
   residences,
   boundary,
+  hiddenSignupPrompts,
   canvasType,
   signedInEmail,
 }: {
   code: string
   residences: ResidenceOption[]
   boundary: Feature<Polygon | MultiPolygon> | null
+  hiddenSignupPrompts: SignupPromptKey[]
   canvasType: CanvasType
   signedInEmail?: string | null
 }) {
@@ -246,25 +248,29 @@ export default function ResidentIntakeForm({
           className={inputClass}
         />
       </div>
-      <div className="space-y-4 border-t border-border pt-4">
-        <p className="text-base font-medium text-ink">
-          Help your neighbors get to know you{' '}
-          <span className="text-muted font-normal">(all optional, shown to your neighbors)</span>
-        </p>
-        <div>
-          <label className="block text-base font-medium text-ink mb-1.5">About you</label>
-          <textarea
-            value={blurb}
-            onChange={(e) => setBlurb(e.target.value)}
-            maxLength={MAX_TEXT.blurb}
-            rows={2}
-            placeholder="e.g. who's in your household, pets and their names, what you do"
-            className={inputClass}
-          />
-          <CharCount value={blurb} max={MAX_TEXT.blurb} />
+      {hiddenSignupPrompts.length < SIGNUP_PROMPT_KEYS.length && (
+        <div className="space-y-4 border-t border-border pt-4">
+          <p className="text-base font-medium text-ink">
+            Help your neighbors get to know you{' '}
+            <span className="text-muted font-normal">(all optional, shown to your neighbors)</span>
+          </p>
+          {!hiddenSignupPrompts.includes('blurb') && (
+            <div>
+              <label className="block text-base font-medium text-ink mb-1.5">About you</label>
+              <textarea
+                value={blurb}
+                onChange={(e) => setBlurb(e.target.value)}
+                maxLength={MAX_TEXT.blurb}
+                rows={2}
+                placeholder="e.g. who's in your household, pets and their names, what you do"
+                className={inputClass}
+              />
+              <CharCount value={blurb} max={MAX_TEXT.blurb} />
+            </div>
+          )}
+          <ResidentProfileFields profile={profile} onChange={setProfile} hidden={hiddenSignupPrompts} />
         </div>
-        <ResidentProfileFields profile={profile} onChange={setProfile} />
-      </div>
+      )}
       {error &&<p className="text-base text-red-600">{error}</p>}
       <button
         type="submit"

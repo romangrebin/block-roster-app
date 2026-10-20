@@ -27,6 +27,9 @@ export type Block = {
   // their contact method instead — stewards still get an email either way, see
   // notifyStewardsOfRegistration.
   autoApproveJoins: boolean
+  // Prompts left off the sign-up form, only to keep sign-up short. My info always offers every
+  // prompt, and resident cards show every populated field regardless.
+  hiddenSignupPrompts: SignupPromptKey[]
   // Pseudo-secret slug for the public/private landing page at /<code> — see lib/blockCode.ts.
   code: string
   // Shown to anyone who knows the code, no sign-in required.
@@ -47,6 +50,7 @@ export type BlockInput = {
   residentExportEnabled?: boolean
   lendingLibraryEnabled?: boolean
   autoApproveJoins?: boolean
+  hiddenSignupPrompts?: SignupPromptKey[]
 }
 
 export type Residence = {
@@ -103,6 +107,9 @@ export type ResidentProfile = {
   countMeInFor: string | null
   askMeAbout: string | null
 }
+
+/** The optional sign-up questions a steward can hide: About you, plus each profile prompt. */
+export type SignupPromptKey = 'blurb' | keyof ResidentProfile
 
 export type ResidentInput = {
   residenceId: string

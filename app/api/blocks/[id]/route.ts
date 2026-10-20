@@ -3,7 +3,7 @@ import { getUser } from '@/lib/auth'
 import { resolveActiveSteward } from '@/lib/application'
 import { getRepository } from '@/lib/db'
 import { validateBlockCode, blockCodeErrorMessage } from '@/lib/blockCode'
-import { cappedText, MAX_TEXT } from '@/lib/validation'
+import { cappedText, MAX_TEXT, parseSignupPromptKeys } from '@/lib/validation'
 import { clientErrorMessage } from '@/lib/apiError'
 import type { BlockInput } from '@/lib/types'
 
@@ -38,6 +38,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (typeof body.residentExportEnabled === 'boolean') patch.residentExportEnabled = body.residentExportEnabled
   if (typeof body.lendingLibraryEnabled === 'boolean') patch.lendingLibraryEnabled = body.lendingLibraryEnabled
   if (typeof body.autoApproveJoins === 'boolean') patch.autoApproveJoins = body.autoApproveJoins
+  if (Array.isArray(body.hiddenSignupPrompts)) patch.hiddenSignupPrompts = parseSignupPromptKeys(body.hiddenSignupPrompts)
 
   try {
     const block = await getRepository().blocks.update(blockId, patch)

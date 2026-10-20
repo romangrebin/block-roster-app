@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { MAX_TEXT } from '@/lib/validation'
+import { MAX_TEXT, SIGNUP_PROMPT_KEYS } from '@/lib/validation'
+import { SIGNUP_PROMPT_LABELS } from '@/lib/residentProfile'
+import type { SignupPromptKey } from '@/lib/types'
 import CharCount from './CharCount'
 
 // Mirrors MAX_CODE_LENGTH in lib/blockCode.ts — kept as a literal here so this Client
@@ -26,6 +28,7 @@ export default function BlockContentForm({
   residentExportEnabled: initialResidentExportEnabled,
   lendingLibraryEnabled: initialLendingLibraryEnabled,
   autoApproveJoins: initialAutoApproveJoins,
+  hiddenSignupPrompts: initialHiddenSignupPrompts,
 }: {
   blockId: string
   name: string
@@ -35,6 +38,7 @@ export default function BlockContentForm({
   residentExportEnabled: boolean
   lendingLibraryEnabled: boolean
   autoApproveJoins: boolean
+  hiddenSignupPrompts: SignupPromptKey[]
 }) {
   const router = useRouter()
   // Same transition pattern as useSaveAndRefresh, inlined because a code change navigates
@@ -47,6 +51,10 @@ export default function BlockContentForm({
   const [residentExportEnabled, setResidentExportEnabled] = useState(initialResidentExportEnabled)
   const [lendingLibraryEnabled, setLendingLibraryEnabled] = useState(initialLendingLibraryEnabled)
   const [autoApproveJoins, setAutoApproveJoins] = useState(initialAutoApproveJoins)
+  const [hiddenSignupPrompts, setHiddenSignupPrompts] = useState(initialHiddenSignupPrompts)
+
+  const toggleSignupPrompt = (key: SignupPromptKey, shown: boolean) =>
+    setHiddenSignupPrompts((hidden) => (shown ? hidden.filter((k) => k !== key) : [...hidden, key]))
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -57,7 +65,8 @@ export default function BlockContentForm({
     privateNotes !== (initialPrivateNotes ?? '') ||
     residentExportEnabled !== initialResidentExportEnabled ||
     lendingLibraryEnabled !== initialLendingLibraryEnabled ||
-    autoApproveJoins !== initialAutoApproveJoins
+    autoApproveJoins !== initialAutoApproveJoins ||
+    [...hiddenSignupPrompts].sort().join() !== [...initialHiddenSignupPrompts].sort().join()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,6 +86,7 @@ export default function BlockContentForm({
           residentExportEnabled,
           lendingLibraryEnabled,
           autoApproveJoins,
+          hiddenSignupPrompts,
         }),
       })
       const body = await res.json()
@@ -198,6 +208,25 @@ export default function BlockContentForm({
           </span>
         </span>
       </label>
+      <fieldset className="space-y-2">
+        <legend className="text-base font-medium text-ink mb-1">
+          Sign-up questions{' '}
+          <span className="text-muted font-normal">
+            (optional questions new residents are asked. Answers people already gave still show)
+          </span>
+        </legend>
+        {SIGNUP_PROMPT_KEYS.map((key) => (
+          <label key={key} className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!hiddenSignupPrompts.includes(key)}
+              onChange={(e) => toggleSignupPrompt(key, e.target.checked)}
+              className="w-4 h-4 accent-accent cursor-pointer"
+            />
+            <span className="text-base text-ink">{SIGNUP_PROMPT_LABELS[key]}</span>
+          </label>
+        ))}
+      </fieldset>
       {error && <p className="text-base text-red-600">{error}</p>}
       <button
         type="submit"

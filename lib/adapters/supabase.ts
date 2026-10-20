@@ -16,6 +16,7 @@ import type {
   Resident,
   ResidentInput,
   ResidentProfile,
+  SignupPromptKey,
   ContactMethod,
   ContactMethodInput,
   Steward,
@@ -42,6 +43,7 @@ type BlockRow = {
   resident_export_enabled: boolean
   lending_library_enabled: boolean
   auto_approve_joins: boolean
+  hidden_signup_prompts: SignupPromptKey[]
   code: string
   public_blurb: string | null
   private_notes: string | null
@@ -120,6 +122,7 @@ function toBlock(row: BlockRow): Block {
     residentExportEnabled: row.resident_export_enabled,
     lendingLibraryEnabled: row.lending_library_enabled,
     autoApproveJoins: row.auto_approve_joins,
+    hiddenSignupPrompts: row.hidden_signup_prompts,
     code: row.code,
     publicBlurb: row.public_blurb,
     privateNotes: row.private_notes,
@@ -275,6 +278,7 @@ function createBlockRepository(client: SupabaseClient): BlockRepository {
       if (input.residentExportEnabled !== undefined) patch.resident_export_enabled = input.residentExportEnabled
       if (input.lendingLibraryEnabled !== undefined) patch.lending_library_enabled = input.lendingLibraryEnabled
       if (input.autoApproveJoins !== undefined) patch.auto_approve_joins = input.autoApproveJoins
+      if (input.hiddenSignupPrompts !== undefined) patch.hidden_signup_prompts = input.hiddenSignupPrompts
       const { data, error } = await client.from('blocks').update(patch).eq('id', id).select().single()
       if (error) {
         if (error.code === UNIQUE_VIOLATION) throw new Error('That code is already taken.')
@@ -376,8 +380,7 @@ function createResidentRepository(client: SupabaseClient): ResidentRepository {
     },
     // Same embedded-resource-filter pattern as items.listByBlock below — residents has no
     // block_id of its own, so this filters through residences via PostgREST's `!inner` join
-    // instead of looping listByResidence once per residence (was the community page's main
-    // source of slowness on larger blocks: N sequential round-trips instead of one).
+    // so the whole block loads in one round-trip rather than one per residence.
     async listByBlock(blockId) {
       const { data, error } = await client
         .from('residents')

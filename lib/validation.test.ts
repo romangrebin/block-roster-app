@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cappedText, escapeHtml, MAX_TEXT, parseProfile } from './validation'
+import { cappedText, escapeHtml, MAX_TEXT, parseProfile, parseSignupPromptKeys } from './validation'
 
 describe('cappedText', () => {
   it('trims surrounding whitespace', () => {
@@ -62,5 +62,18 @@ describe('parseProfile', () => {
     expect(parseProfile({ movedInYear: 1800 }).movedInYear).toBeNull()
     expect(parseProfile({ movedInYear: new Date().getFullYear() + 1 }).movedInYear).toBeNull()
     expect(parseProfile({ movedInYear: 2014.5 }).movedInYear).toBeNull()
+  })
+})
+
+describe('parseSignupPromptKeys', () => {
+  it('keeps known keys, dedupes, and drops anything else', () => {
+    expect(parseSignupPromptKeys(['movedInYear', 'bogus', 'blurb', 'movedInYear', 3])).toEqual([
+      'blurb',
+      'movedInYear',
+    ])
+  })
+
+  it('treats a non-array as nothing hidden', () => {
+    expect(parseSignupPromptKeys('blurb')).toEqual([])
   })
 })

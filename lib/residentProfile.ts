@@ -1,5 +1,14 @@
-import type { ResidentProfile } from './types'
+import type { ResidentProfile, SignupPromptKey } from './types'
 import { EARLIEST_MOVED_IN_YEAR, MAX_TEXT } from './validation'
+
+/** Labels for the steward's "Sign-up questions" checklist, in form order. */
+export const SIGNUP_PROMPT_LABELS: Record<SignupPromptKey, string> = {
+  blurb: 'About you',
+  movedInYear: 'Year you moved in',
+  favoriteSpot: 'Favorite local spot',
+  countMeInFor: 'Count me in for…',
+  askMeAbout: 'Ask me about…',
+}
 
 type TextPromptKey = Exclude<keyof ResidentProfile, 'movedInYear'>
 
