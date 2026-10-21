@@ -506,7 +506,14 @@ export async function listRequestedItemIds(
     .map((r) => r.itemId)
 }
 
-export type PastExpedition = { playerName: string; party: string[]; items: string[]; failures: number; createdAt: string }
+export type PastExpedition = {
+  id: string
+  playerName: string
+  party: string[]
+  items: string[]
+  failures: number
+  createdAt: string
+}
 
 /** Records a finished Expedition run, scoring it here rather than trusting the browser. */
 export async function recordExpeditionRun(
@@ -542,10 +549,27 @@ export async function listPastExpeditions(blockId: string, limit: number): Promi
   const nameById = new Map(residents.map((r) => [r.id, r.name]))
   const runs = await repo.expeditionRuns.listByResidents([...nameById.keys()], limit)
   return runs.map((run) => ({
+    id: run.id,
     playerName: nameById.get(run.residentId) ?? 'A newcomer',
     party: run.party,
     items: run.items,
     failures: run.failures,
     createdAt: run.createdAt,
   }))
+}
+
+/** Steward-only: removes one run from the Past expeditions list. */
+export async function deleteExpeditionRun(
+  runId: string,
+  userId: string
+): Promise<{ error: string; status: number } | { ok: true }> {
+  const repo = getRepository()
+  const run = await repo.expeditionRuns.getById(runId)
+  if (!run) return { error: 'Expedition not found', status: 404 }
+
+  const steward = await resolveStewardForResident(run.residentId, userId)
+  if ('error' in steward) return steward
+
+  await repo.expeditionRuns.delete(runId)
+  return { ok: true }
 }

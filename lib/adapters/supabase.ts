@@ -720,6 +720,11 @@ function createExpeditionRunRepository(client: SupabaseClient): ExpeditionRunRep
         .single()
       return toExpeditionRun(requireNoError(data as ExpeditionRunRow | null, error, 'expeditionRuns.create'))
     },
+    async getById(id) {
+      const { data, error } = await client.from('expedition_runs').select().eq('id', id).maybeSingle()
+      if (error) throw new Error(`[supabase adapter] expeditionRuns.getById: ${error.message}`)
+      return data ? toExpeditionRun(data as ExpeditionRunRow) : null
+    },
     async listByResidents(residentIds, limit) {
       if (residentIds.length === 0) return []
       const { data, error } = await client
@@ -730,6 +735,10 @@ function createExpeditionRunRepository(client: SupabaseClient): ExpeditionRunRep
         .limit(limit)
       if (error) throw new Error(`[supabase adapter] expeditionRuns.listByResidents: ${error.message}`)
       return (data as ExpeditionRunRow[]).map(toExpeditionRun)
+    },
+    async delete(id) {
+      const { error } = await client.from('expedition_runs').delete().eq('id', id)
+      if (error) throw new Error(`[supabase adapter] expeditionRuns.delete: ${error.message}`)
     },
   }
 }

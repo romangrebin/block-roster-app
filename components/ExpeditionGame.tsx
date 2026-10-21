@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { PastExpedition } from '@/lib/application'
+import DeleteExpeditionButton from './DeleteExpeditionButton'
 import {
   CHALLENGE_COUNT,
   BORROWED_ITEM_COUNT,
@@ -223,13 +224,19 @@ function PartyPicker({
   )
 }
 
-function PastExpeditions({ expeditions }: { expeditions: PastExpedition[] }) {
+export function PastExpeditions({
+  expeditions,
+  canDelete = false,
+}: {
+  expeditions: PastExpedition[]
+  canDelete?: boolean
+}) {
   return (
     <section className="space-y-3 border-t border-border pt-6">
       <h2 className="text-lg font-medium text-ink">Past expeditions</h2>
       <ul className="space-y-2">
         {expeditions.map((expedition) => (
-          <li key={expedition.createdAt + expedition.playerName} className="text-base">
+          <li key={expedition.id} className="text-base">
             <span className="text-ink font-medium">{expedition.playerName}</span>
             <span className="text-muted">
               {' '}
@@ -242,6 +249,12 @@ function PastExpeditions({ expeditions }: { expeditions: PastExpedition[] }) {
                 timeZone: 'America/Los_Angeles',
               })}
             </span>
+            {canDelete && (
+              <>
+                {' '}
+                <DeleteExpeditionButton runId={expedition.id} playerName={expedition.playerName} />
+              </>
+            )}
           </li>
         ))}
       </ul>
@@ -308,6 +321,11 @@ function Ending({
     <div className="space-y-8">
       <section className="space-y-3">
         <p className="text-sm font-medium text-muted uppercase tracking-wide">Day 12 · Home</p>
+        <h2 className="text-2xl font-semibold text-ink">
+          {result.failures === 0
+            ? 'All six challenges met: a perfect expedition.'
+            : `${challengesMet} of ${CHALLENGE_COUNT} challenges met.`}
+        </h2>
         <p className="text-lg text-ink">{result.arrival}</p>
         {result.wingCame && (
           <p className="text-lg text-ink">
@@ -315,16 +333,6 @@ function Ending({
             families lived, would get its fair share of the wood. It did.
           </p>
         )}
-        {!failed && (
-          <p className="text-lg text-ink">
-            The wood was not enough for every stove to burn warm all winter. But it was enough to matter.
-          </p>
-        )}
-        <p className="text-base font-medium text-ink">
-          {result.failures === 0
-            ? 'All six challenges met: a perfect expedition.'
-            : `${challengesMet} of ${CHALLENGE_COUNT} challenges met.`}
-        </p>
       </section>
 
       <section className="space-y-3 border-t border-border pt-6">
@@ -338,14 +346,13 @@ function Ending({
 
       <section className="space-y-3 border-t border-border pt-6">
         <p className="text-lg text-ink">
-          {failed ? 'What little wood we hauled was gone within weeks.' : 'The wood we hauled was gone by March.'} Most of the families were gone within a few years. By 1962 there
+          {failed ? 'What little wood you hauled was gone within weeks.' : 'The wood you hauled was gone by March.'} Most of the families were gone within a few years. By 1962 there
           was no one left who remembered which stoves stayed lit that winter.
         </p>
         <p className="text-lg text-ink">
           {failed
-            ? 'But we went, four of us, in the worst of it, because someone had to.'
-            : 'But they did stay lit.'}{' '}
-          Nobody remembers. It counted anyway.
+            ? 'But you went, four of you, in the worst of it, because someone had to.'
+            : 'But they did stay lit, and it mattered to the people who stayed warm.'}
         </p>
       </section>
 
@@ -357,8 +364,7 @@ function Ending({
       >
         <span className="block text-lg font-semibold text-ink">The history behind the story →</span>
         <span className="block text-base text-muted mt-1">
-          What was real, what we invented, and the surprising facts along the way: why skis were called
-          snowshoes, what frostbite advice was in 1879, and who cut Bodie&apos;s wood.
+          Based on real Bodie residents, with imagined voices. Read some of the real history and the sources used.
         </span>
       </Link>
 
@@ -376,18 +382,6 @@ function Ending({
             Try a different party
           </button>
         </div>
-        <p className="text-sm text-muted">
-          Inspired by real Bodie residents. Names, households, and occupations follow the historical record where
-          known; voices and stories are imagined.{' '}
-          <Link
-            href={`${communityPath}/expedition/sources`}
-            target="_blank"
-            data-umami-event="expedition-sources"
-            className="text-accent underline"
-          >
-            The history behind the story
-          </Link>
-        </p>
       </section>
 
       {pastExpeditions.length > 0 && <PastExpeditions expeditions={pastExpeditions} />}

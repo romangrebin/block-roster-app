@@ -12,13 +12,13 @@ export const NEIGHBORS: Neighbor[] = [
   {
     name: 'James Stuart Cain',
     residence: 'J.S. Cain Residence',
-    colorLine: 'Mr. Cain priced every tree we passed, out loud. By the third day it was a game.',
+    colorLine: 'Mr. Cain priced every tree you passed, out loud. By the third day it was a game.',
   },
   {
     name: 'Ella Cody Cain',
     residence: 'D.V. Cain House',
     colorLine:
-      "Ella told us what Bodie was like with forty people in it. I couldn't picture it. She said I'd see it again someday.",
+      "Ella told everyone what Bodie was like with forty people in it. You couldn't picture it. She said you'd see it again someday.",
   },
   {
     name: 'Theresa Seiler',
@@ -44,12 +44,12 @@ export const NEIGHBORS: Neighbor[] = [
   {
     name: 'Annie Donnelly',
     residence: 'Donnelly House',
-    colorLine: 'Annie raced down every slope we came to. Twice she won.',
+    colorLine: 'Annie raced down every slope you came to. Twice she won.',
   },
   {
     name: 'Clara Holt',
     residence: 'Dolan House',
-    colorLine: "Clara taught us the constellations. I'd never known their names.",
+    colorLine: "Clara taught everyone the constellations. You'd never known their names.",
   },
   {
     name: 'Josiah Webb',
@@ -59,12 +59,12 @@ export const NEIGHBORS: Neighbor[] = [
   {
     name: 'Harvey Boone',
     residence: 'Saddle Room',
-    colorLine: "Harvey kept a ledger of everything we used. 'For the town,' he said, and then crossed it all out.",
+    colorLine: "Harvey kept a ledger of everything the party used. 'For the town,' he said, and then crossed it all out.",
   },
   {
     name: 'Wing Yee',
     residence: 'Sawmill',
-    colorLine: 'Wing taught me to split a log with the grain. Three swings instead of ten.',
+    colorLine: 'Wing taught you to split a log with the grain. Three swings instead of ten.',
   },
   {
     name: 'Ruth Hartley',
@@ -79,12 +79,12 @@ export const NEIGHBORS: Neighbor[] = [
 ]
 
 const ITEM_COLOR_LINES: Record<string, string> = {
-  'Chart of the Mono Lake shore': "We didn't need the chart in the end, but it was a comfort to have.",
+  'Chart of the Mono Lake shore': "You didn't need the chart in the end, but it was a comfort to have.",
   'Two-person crosscut saw': 'The big saw made short work of the camp wood, too.',
   "August's fiddle": "August's fiddle came out after supper. For an hour it wasn't cold.",
   'Long snowshoes': 'Someone took the skis out just for fun and came back laughing, covered in snow.',
-  'A book of poems': "Someone read poems aloud by the fire. I didn't know I liked poems.",
-  'Iron-shod spare axle': 'We hauled that spare axle the whole way. I tried not to resent it.',
+  'A book of poems': "Someone read poems aloud by the fire. You hadn't known you liked poems.",
+  'Iron-shod spare axle': 'You hauled that spare axle the whole way. You tried not to resent it.',
   'Buffalo robe':
     "Pete's buffalo robe kept the frost off whoever had the last watch. It smelled like him. Nobody complained.",
 }
@@ -110,17 +110,17 @@ const CHALLENGES: Challenge[] = [
       },
     ],
     failure:
-      'The second wagon slid off the grade and broke a wheel. We lost half a day getting it back on the road. The mules were fine. We were not.',
+      'The second wagon slid off the grade and broke a wheel. You lost half a day getting it back on the road. The mules were fine. You were not.',
     hint: 'Someone who drove teams for a living might have known how to get a loaded wagon down that grade.',
   },
   {
     day: 3,
     title: 'Mono Lake',
     answers: [
-      { neighbor: 'Wing Yee', line: 'Wing led us to a spring on the east shore. The water was sweet.' },
+      { neighbor: 'Wing Yee', line: 'Wing led you to a spring on the east shore. The water was sweet.' },
       {
         neighbor: 'James Stuart Cain',
-        line: 'Mr. Cain knew the shore from his barges and led us to a spring. The water was sweet.',
+        line: 'Mr. Cain knew the shore from his barges and led you to a spring. The water was sweet.',
       },
       {
         item: 'Chart of the Mono Lake shore',
@@ -128,7 +128,7 @@ const CHALLENGES: Challenge[] = [
       },
     ],
     failure:
-      "The lake is too bitter to drink, and we couldn't find fresh water. A long, dry day for us and the mules.",
+      "The lake is too bitter to drink, and you couldn't find fresh water. A long, dry day for you and the mules.",
     hint: 'Someone who knew the shore, or had a map of it, might have found a spring.',
   },
   {
@@ -137,14 +137,14 @@ const CHALLENGES: Challenge[] = [
     answers: [
       {
         neighbor: 'Wing Yee',
-        line: 'Wing had the first tree down before we had the wagons unhitched. By dark we had three cords split and stacked. My hands have never hurt like this.',
+        line: 'Wing had the first tree down before you had the wagons unhitched. By dark you had three cords split and stacked. Your hands have never hurt like this.',
       },
       {
         item: 'Two-person crosscut saw',
-        line: 'The big crosscut saw sang all day. By dark we had three cords split and stacked. My hands have never hurt like this.',
+        line: 'The big crosscut saw sang all day. By dark you had three cords split and stacked. Your hands have never hurt like this.',
       },
     ],
-    failure: 'We had the wrong saw, or the wrong hands. Two days of work for one cord.',
+    failure: 'You had the wrong saw, or the wrong hands. Two days of work for one cord.',
     hint: 'A real woodcutter, or a proper saw, would have made the difference.',
   },
   {
@@ -157,15 +157,15 @@ const CHALLENGES: Challenge[] = [
       },
       {
         neighbor: 'Andrew Cameron',
-        line: 'Andrew had us dig in behind the wagons the way they did in the Sierra camps. We waited it out.',
+        line: 'Andrew had everyone dig in behind the wagons the way they did in the Sierra camps. You waited it out.',
       },
       {
         neighbor: 'Pete Sturgeon',
-        line: "Pete stopped the wagons, read the wind, and found the road where none of us could see one. He didn't explain how.",
+        line: "Pete stopped the wagons, read the wind, and found the road where none of you could see one. He didn't explain how.",
       },
-      { item: 'Long snowshoes', line: "Annie's skis carried one of us ahead to find the road." },
+      { item: 'Long snowshoes', line: "Annie's skis carried one of you ahead to find the road." },
     ],
-    failure: "We couldn't see the mules from the wagon. We walked in circles until morning.",
+    failure: "You couldn't see the mules from the wagon. You walked in circles until morning.",
     hint: 'Someone who knew the high country in winter, or a way across deep snow, might have found the road.',
   },
   {
@@ -178,10 +178,10 @@ const CHALLENGES: Challenge[] = [
       },
       {
         item: 'Iron-shod spare axle',
-        line: "The axle cracked at twenty below. We'd never have made it without Mr. Boone's spare. It took four of us and most of the afternoon.",
+        line: "The axle cracked at twenty below. You'd never have made it without Mr. Boone's spare. It took all four of you and most of the afternoon.",
       },
     ],
-    failure: 'The axle cracked at twenty below. We left the second wagon and its wood on the road. I still think about that wood.',
+    failure: "The axle cracked at twenty below. You left the second wagon and its wood on the road. You'll think about that wood for years.",
     hint: 'Someone who could fix a wagon on the road, or a spare part, would have saved it.',
   },
   {
@@ -190,10 +190,10 @@ const CHALLENGES: Challenge[] = [
     answers: [
       {
         neighbor: 'Hannah Price',
-        line: "Hannah took one look at my fingers and wouldn't let anyone hold them to the fire. She thawed them slowly, the way she'd learned in Virginia City. I'll keep all ten.",
+        line: "Hannah took one look at your fingers and wouldn't let anyone hold them to the fire. She thawed them slowly, the way she'd learned in Virginia City. You'll keep all ten.",
       },
     ],
-    failure: "My fingers went white, then gray. I'll keep the hand, they think.",
+    failure: "Your fingers went white, then gray. You'll keep the hand, they think.",
     hint: 'Someone with nursing experience would have known how to thaw them.',
   },
 ]
@@ -201,12 +201,12 @@ const CHALLENGES: Challenge[] = [
 export const CHALLENGE_COUNT = CHALLENGES.length
 
 const QUIET_DAYS: { day: number; line: string }[] = [
-  { day: 2, line: 'First night out. Someone asked why I came west. I said gold. They laughed, but kindly.' },
+  { day: 2, line: 'First night out. Around the fire, everyone took a turn saying why they came west. Most said gold. A few told the truth.' },
   {
     day: 4,
-    line: "The lake is the strangest thing I've ever seen: water so bitter no fish can live in it, and birds everywhere anyway.",
+    line: "The lake is the strangest thing you've ever seen: water so bitter no fish can live in it, and birds everywhere anyway.",
   },
-  { day: 6, line: "Snow overnight. Nobody wants to say what we're all thinking about the trip home." },
+  { day: 6, line: "Snow overnight. Nobody wants to say what everyone is thinking about the trip home." },
   { day: 8, line: 'Loaded wagons, uphill. Two miles today. Maybe three.' },
   { day: 10, line: 'Everyone smells of smoke and mules. Nobody minds anymore.' },
 ]
@@ -276,10 +276,10 @@ export function runExpedition(party: string[], items: string[]): ExpeditionResul
 
 function arrivalLine(outcome: Outcome, { lostAWagon, thinLoads }: { lostAWagon: boolean; thinLoads: boolean }) {
   if (outcome === 'failed') {
-    return 'We came home with almost nothing. Bodie buried more of its own that winter than it should have.'
+    return 'You came home with almost nothing. Bodie buried more of its own that winter than it should have.'
   }
-  if (outcome === 'worse_for_wear') return 'We came home with less than we went for, and less of ourselves.'
-  if (lostAWagon) return 'We came down into Bodie on the twelfth day with one wagon of pine. The other is still on the road.'
-  if (thinLoads) return 'We came down into Bodie on the twelfth day with the wagons half full. It would have to do.'
-  return 'We came down into Bodie on the twelfth day with both wagons full of pine.'
+  if (outcome === 'worse_for_wear') return 'You came home with less than you went for, and far worse for wear.'
+  if (lostAWagon) return 'You came down into Bodie on the twelfth day with one wagon of pine. The other is still on the road.'
+  if (thinLoads) return 'You came down into Bodie on the twelfth day with the wagons half full. It would have to do.'
+  return 'You came down into Bodie on the twelfth day with both wagons full of pine.'
 }

@@ -6,7 +6,7 @@
 //
 // Safe to re-run: it deletes only residents whose names are in CAST or FORMER_CAST_NAMES (their
 // items go with them via ON DELETE CASCADE) and re-creates the cast. Real visitors who joined the demo are left alone. It
-// does overwrite the community's public and private descriptions.
+// does overwrite the community's descriptions and settings.
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -17,17 +17,17 @@ const PUBLIC_DESCRIPTION = `**⛏️ Gold has been discovered in Bodie!** It's t
 
 ---
 
-*What is this?* A demo community of **Our Block** (this app), turned into a playable narrative based in 1879. Bodie is a real California ghost town: every house on this map still stands, and most of the people here really lived in them. Join as a newcomer, pick an empty house, and say a bit about yourself. Then meet your neighbors and see if you can help the community during your first winter. You'll get a sign-in link by email; the game is inside. Up to 15 minutes.`
+*What is this?* A demo community of **Our Block** (this app; built to connect neighbors), turned into a playable, educational narrative set in 1879. Bodie is a real California ghost town: most houses on this map still stand, and most of the people here really lived in them. Join as a newcomer, pick an empty house, and say a bit about yourself. Then meet your neighbors and see if you can help the community during your first winter. You'll get a sign-in link by email. Takes up to 15 minutes.`
 
 const PRIVATE_DESCRIPTION = `You came for the gold and the hope of creating a life for yourself, just like everyone else.
 
 Nobody warned you about the winter.
 
-It's November 1879. The woodpiles are nearly gone, and a cord costs twenty dollars, most of a week's pay. Last night at the Miners' Union Hall they decided four people would take wagons south to the pines past Mono Lake and bring back what they can before the passes close.
+It's November 1879. The woodpiles are nearly gone, and a cord costs twenty dollars, most of a week's pay. Last night at the Miners' Union Hall they decided four people would take two wagons and their mules south to the pines past Mono Lake and bring back what they can before the passes close.
 
-You said you'd go. Someone had to, and it's a good way to make a name for yourself. You'll have to choose the other three carefully: who they are, what they know, what they'd lend.
+You said you'd go. Someone had to, and it's a good way to make a name for yourself. You'll have to choose the other three party members carefully: who they are, what they know, what they'd lend.
 
-*How to play: get to know your neighbors on the map, check the Lending Library for anything worth borrowing, then head to the **Expedition** tab to choose your party: three neighbors to go with you, and two borrowed things.*`
+*How to play: get to know your neighbors on the map, check the Lending Library for anything worth borrowing, then head to the **Expedition** tab to choose your party: three neighbors to go with you, and two borrowed things. This Bodie community was built using features generally available in Our Block, besides the Expedition tab.`
 
 // Keyed by residence label exactly as drawn in the app. Real people keep their documented facts;
 // voices, feelings, and invented occupants are fiction (see the draft's ground rules).
@@ -208,7 +208,7 @@ const existingCast = check(
 )
 
 const itemCount = CAST.reduce((sum, c) => sum + c.items.length, 0)
-console.log(`${block.name} (/${BLOCK_CODE}): replacing ${existingCast.length} existing cast resident(s) with ${CAST.length}, plus ${itemCount} items, and setting both descriptions.`)
+console.log(`${block.name} (/${BLOCK_CODE}): replacing ${existingCast.length} existing cast resident(s) with ${CAST.length}, plus ${itemCount} items, and setting descriptions and settings.`)
 if (dryRun) process.exit(0)
 
 if (existingCast.length > 0) {
@@ -223,9 +223,12 @@ check(
       private_notes: PRIVATE_DESCRIPTION,
       lending_library_enabled: true,
       borrow_requests_enabled: true,
+      auto_approve_joins: true,
+      resident_export_enabled: false,
+      hidden_signup_prompts: ['movedInYear', 'askMeAbout'],
     })
     .eq('id', block.id),
-  'set descriptions'
+  'set descriptions and settings'
 )
 
 const approvedAt = new Date().toISOString()

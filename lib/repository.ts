@@ -118,8 +118,10 @@ export interface BorrowRequestRepository {
 
 export interface ExpeditionRunRepository {
   create(input: Omit<ExpeditionRun, 'id' | 'createdAt'>): Promise<ExpeditionRun>
+  getById(id: string): Promise<ExpeditionRun | null>
   // Newest first.
   listByResidents(residentIds: string[], limit: number): Promise<ExpeditionRun[]>
+  delete(id: string): Promise<void>
 }
 
 export type BlockRosterRepository = {

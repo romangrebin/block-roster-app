@@ -14,7 +14,7 @@ import LendingLibrarySection, { type LibraryItem } from '@/components/LendingLib
 import MarkdownText from '@/components/MarkdownText'
 import { pickProfile } from '@/lib/residentProfile'
 import { EXPEDITION_BLOCK_CODE } from '@/lib/expedition'
-import ExpeditionGame from '@/components/ExpeditionGame'
+import ExpeditionGame, { PastExpeditions } from '@/components/ExpeditionGame'
 
 type ResidentRow = { resident: Resident; contacts: ContactMethod[] }
 
@@ -241,6 +241,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                   autoApproveJoins={block.autoApproveJoins}
                   hiddenSignupPrompts={block.hiddenSignupPrompts}
                 />
+                {pastExpeditions.length > 0 && <PastExpeditions expeditions={pastExpeditions} canDelete />}
               </div>
             )
           }
