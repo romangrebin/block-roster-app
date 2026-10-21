@@ -17,7 +17,9 @@ const PUBLIC_DESCRIPTION = `**⛏️ Gold has been discovered in Bodie!** It's t
 
 ---
 
-*What is this?* A demo community of **Our Block** (this app; built to connect neighbors), turned into a playable, educational narrative set in 1879. Bodie is a real California ghost town: most houses on this map still stand, and most of the people here really lived in them. Join as a newcomer, pick an empty house, and say a bit about yourself. Then meet your neighbors and see if you can help the community during your first winter. You'll get a sign-in link by email. Takes up to 15 minutes.`
+*What is this?* A demo community of **Our Block** (this app; built to connect neighbors), turned into a playable, educational narrative set in 1879. Bodie is a real California ghost town: most houses on this map still stand, and most of the people here really lived in them. Join as a newcomer, pick an empty house, and say a bit about yourself. Then meet your neighbors and see if you can help the community during your first winter. You'll get a sign-in link by email. Takes up to 15 minutes.
+
+Curious about the real Bodie? [Read the history behind the story](/bodie-ca/expedition/sources).`
 
 const PRIVATE_DESCRIPTION = `You came for the gold and the hope of creating a life for yourself, just like everyone else.
 
@@ -27,7 +29,7 @@ It's November 1879. The woodpiles are nearly gone, and a cord costs twenty dolla
 
 You said you'd go. Someone had to, and it's a good way to make a name for yourself. You'll have to choose the other three party members carefully: who they are, what they know, what they'd lend.
 
-*How to play: get to know your neighbors on the map, check the Lending Library for anything worth borrowing, then head to the **Expedition** tab to choose your party: three neighbors to go with you, and two borrowed things. This Bodie community was built using features generally available in Our Block, besides the Expedition tab.`
+*How to play: get to know your neighbors on the map, check the Lending Library for anything worth borrowing, then head to the **Expedition** tab to choose your party: three neighbors to go with you, and two borrowed things. This Bodie community was built using features generally available in Our Block, besides the Expedition tab.*`
 
 // Keyed by residence label exactly as drawn in the app. Real people keep their documented facts;
 // voices, feelings, and invented occupants are fiction (see the draft's ground rules).
