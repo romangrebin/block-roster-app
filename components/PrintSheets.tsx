@@ -42,7 +42,7 @@ const VERSION_OPTIONS: { key: VersionKey; label: string }[] = [
 // The map page is one SVG in points (72 per inch): a US letter page minus 0.5in margins (see @page in globals.css).
 const PAGE_WIDTH = 540
 const PAGE_HEIGHT = 708
-const CONTENT_TOP = 58
+const CONTENT_TOP = 42
 const CONTENT_BOTTOM = PAGE_HEIGHT - 6
 const COLUMN_WIDTH = 150
 
@@ -196,10 +196,6 @@ function MapPage({
   asOf: string
   houses: PlacedHouse[]
 }) {
-  const subtitle = filled
-    ? `Missing someone? Write them in.${layout === 'fill-in' ? '' : ' More about each household on page 2.'}`
-    : 'Fill in your neighbors as you meet them.'
-
   return (
     <svg
       viewBox={`0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}`}
@@ -214,10 +210,7 @@ function MapPage({
       <text x={PAGE_WIDTH} y={18} fontSize={8} fill={MUTED} textAnchor="end">
         {asOf}
       </text>
-      <text x={0} y={34} fontSize={8} fill={MUTED}>
-        {subtitle}
-      </text>
-      <line x1={0} x2={PAGE_WIDTH} y1={44} y2={44} stroke={RULE} strokeWidth={0.5} />
+      <line x1={0} x2={PAGE_WIDTH} y1={28} y2={28} stroke={RULE} strokeWidth={0.5} />
 
       {houses.map((house) => (
         <path
