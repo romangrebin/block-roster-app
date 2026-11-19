@@ -1,9 +1,29 @@
 import { getUserFromServerComponent } from "@/lib/auth";
 import CreateBlockForm from "@/components/CreateBlockForm";
 import PageContainer from "@/components/PageContainer";
+import CommunityRequestForm from "@/components/CommunityRequestForm";
+import { COMMUNITY_CREATION_OPEN, communityRequestsEnabled } from "@/lib/admin";
 
 export default async function NewBlockPage() {
   const user = await getUserFromServerComponent();
+
+  if (!COMMUNITY_CREATION_OPEN) {
+    const requestsEnabled = communityRequestsEnabled();
+    return (
+      <PageContainer className="space-y-6 max-w-2xl mx-auto">
+        <div>
+          <h1 className="text-3xl font-semibold text-ink">Start a community</h1>
+          <p className="text-lg text-muted mt-2">
+            New communities are paused for now while Our Block is in a small pilot.{" "}
+            {requestsEnabled
+              ? "Want one for your block? Tell Roman a little about it and you'll hear back by email."
+              : "Check back soon."}
+          </p>
+        </div>
+        {requestsEnabled && <CommunityRequestForm signedInEmail={user?.email ?? null} />}
+      </PageContainer>
+    );
+  }
 
   if (!user) {
     return (

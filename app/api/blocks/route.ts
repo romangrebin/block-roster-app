@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
+import { COMMUNITY_CREATION_OPEN } from '@/lib/admin'
 import { createBlock } from '@/lib/application'
 import { validatePolygonGeometry, MAX_BLOCK_AREA_KM2 } from '@/lib/geometryValidation'
 import { cappedText, MAX_TEXT } from '@/lib/validation'
@@ -8,6 +9,9 @@ import type { BlockInput } from '@/lib/types'
 export async function POST(request: NextRequest) {
   const user = await getUser(request)
   if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+  if (!COMMUNITY_CREATION_OPEN) {
+    return NextResponse.json({ error: 'New communities are paused right now' }, { status: 403 })
+  }
 
   const body = await request.json()
   const name = cappedText(body.name, MAX_TEXT.name)

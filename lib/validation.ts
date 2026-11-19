@@ -27,6 +27,7 @@ export const MAX_TEXT = {
   stewardNotes: 2000,
   itemName: 120,
   itemDescription: 1000,
+  communityRequest: 2000,
 } as const
 
 /**

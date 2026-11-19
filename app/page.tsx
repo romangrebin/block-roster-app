@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getUserFromServerComponent } from "@/lib/auth";
 import { getRepository } from "@/lib/db";
 import { listApprovedResidentBlocks } from "@/lib/application";
+import { COMMUNITY_CREATION_OPEN, communityRequestsEnabled } from "@/lib/admin";
 import type { Block } from "@/lib/types";
 import PageContainer from "@/components/PageContainer";
 import EnterCodeBox from "@/components/EnterCodeBox";
@@ -130,15 +131,26 @@ export default async function Home() {
         ))}
       </div>
 
-      <div className="text-center">
-        {!user ? (
-          <p className="text-base text-muted">Sign in (top right) to see or create your community.</p>
-        ) : (
-          <Link href="/blocks/new" data-umami-event="start-community" className={PRIMARY_BUTTON_CLASS}>
-            {blocks.some((b) => b.role === "steward") ? "Create another community" : "Create a community"}
-          </Link>
-        )}
-      </div>
+      {COMMUNITY_CREATION_OPEN ? (
+        <div className="text-center">
+          {!user ? (
+            <p className="text-base text-muted">Sign in (top right) to see or create your community.</p>
+          ) : (
+            <Link href="/blocks/new" data-umami-event="start-community" className={PRIMARY_BUTTON_CLASS}>
+              {blocks.some((b) => b.role === "steward") ? "Create another community" : "Create a community"}
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="text-center space-y-4">
+          {!user && <p className="text-base text-muted">Sign in (top right) to see your community.</p>}
+          {communityRequestsEnabled() && (
+            <Link href="/blocks/new" data-umami-event="start-community" className={PRIMARY_BUTTON_CLASS}>
+              Start a community
+            </Link>
+          )}
+        </div>
+      )}
     </PageContainer>
   );
 }
