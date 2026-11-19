@@ -31,7 +31,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${lora.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bg">
-        <header className="flex items-center justify-between px-6 py-4 bg-surface border-b border-border">
+        <header className="flex items-center justify-between px-6 py-4 bg-surface border-b border-border print:hidden">
           <div className="flex items-center gap-4">
             <Link href="/" className="text-lg font-semibold text-ink">
               Our Block

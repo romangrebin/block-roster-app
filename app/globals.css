@@ -40,6 +40,12 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* The Print tab's sheets are sized to exactly fill this page. */
+@page {
+  size: letter;
+  margin: 0.5in;
+}
+
 h1,
 h2,
 h3 {

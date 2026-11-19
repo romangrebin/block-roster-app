@@ -274,11 +274,13 @@ export default function ResidentIntakeForm({
         <div className="space-y-4 border-t border-border pt-4">
           <p className="text-base font-medium text-ink">
             Help your neighbors get to know you{' '}
-            <span className="text-muted font-normal">(all optional, shown to your neighbors)</span>
+            <span className="text-muted font-normal">(shown to your neighbors)</span>
           </p>
           {!hiddenSignupPrompts.includes('blurb') && (
             <div>
-              <label className="block text-base font-medium text-ink mb-1.5">About you</label>
+              <label className="block text-base font-medium text-ink mb-1.5">
+                About you <span className="text-muted font-normal">(optional)</span>
+              </label>
               <textarea
                 value={blurb}
                 onChange={(e) => setBlurb(e.target.value)}

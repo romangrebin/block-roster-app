@@ -9,5 +9,5 @@ export default function PageContainer({
   children: React.ReactNode
   className?: string
 }) {
-  return <div className={`flex-1 w-full px-6 py-10 ${className}`}>{children}</div>
+  return <div className={`flex-1 w-full px-6 py-10 print:p-0 ${className}`}>{children}</div>
 }

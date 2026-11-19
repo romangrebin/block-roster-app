@@ -21,7 +21,9 @@ export default function ResidentProfileFields({
     <>
       {!hidden.includes('movedInYear') && (
         <div>
-          <label className="block text-base font-medium text-ink mb-1.5">Year you moved in</label>
+          <label className="block text-base font-medium text-ink mb-1.5">
+            Year you moved in <span className="text-muted font-normal">(optional)</span>
+          </label>
           <select
             value={profile.movedInYear ?? ''}
             onChange={(e) => onChange({ ...profile, movedInYear: e.target.value ? Number(e.target.value) : null })}
@@ -38,7 +40,9 @@ export default function ResidentProfileFields({
       )}
       {TEXT_PROMPTS.filter(({ key }) => !hidden.includes(key)).map(({ key, label, placeholder, max }) => (
         <div key={key}>
-          <label className="block text-base font-medium text-ink mb-1.5">{label}</label>
+          <label className="block text-base font-medium text-ink mb-1.5">
+            {label} <span className="text-muted font-normal">(optional)</span>
+          </label>
           <input
             type="text"
             value={profile[key] ?? ''}

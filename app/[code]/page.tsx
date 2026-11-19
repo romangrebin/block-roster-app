@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation'
 import { getUserFromServerComponent } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
-import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory, listRequestedItemIds, listPastExpeditions } from '@/lib/application'
+import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory, listRequestedItemIds, listPastExpeditions, type DirectoryEntry } from '@/lib/application'
+import { buildPrintEntries } from '@/lib/printSheet'
+import PrintSheets from '@/components/PrintSheets'
+import MagicLinkSignInForm from '@/components/MagicLinkSignInForm'
 import type { Resident, ContactMethod } from '@/lib/types'
 import ResidentIntakeForm from '@/components/ResidentIntakeForm'
 import JoinLinkBox from '@/components/JoinLinkBox'
@@ -59,12 +62,15 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
   // promote/move-out controls; approved residents see the peer-safe view instead —
   // approved-only, block_wide contacts only.
   let residentsByResidence: Map<string, ResidentRow[]> | null = null
+  let peerDirectory: DirectoryEntry[] = []
   let activeStewards: { userId: string; stewardId: string }[] = []
   if (isSteward) {
-    const [allResidents, stewards] = await Promise.all([
+    const [allResidents, stewards, directory] = await Promise.all([
       repo.residents.listByBlock(block.id),
       repo.stewards.listByBlock(block.id),
+      getResidentDirectory(block.id),
     ])
+    peerDirectory = directory
     const contacts = await repo.contactMethods.listByResidents(allResidents.map((r) => r.id))
     const contactsByResident = new Map<string, ContactMethod[]>()
     for (const contact of contacts) {
@@ -85,6 +91,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
       .map((s) => ({ userId: s.userId, stewardId: s.id }))
   } else if (hasPrivateAccess) {
     const directory = await getResidentDirectory(block.id)
+    peerDirectory = directory
     residentsByResidence = new Map(directory.map((entry) => [entry.residence.id, entry.residents]))
   }
 
@@ -124,7 +131,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
 
   return (
     <PageContainer className="space-y-8">
-      <div>
+      <div className="print:hidden">
         <h1 className="text-3xl font-semibold text-ink">{block.name}</h1>
         {isSteward && residences.length > 0 && (
           <p className="text-base text-muted mt-1">
@@ -186,6 +193,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
               />
             )
           }
+          print={<PrintSheets blockName={block.name} entries={buildPrintEntries(peerDirectory)} />}
           myInfo={
             viewerResident ? (
               <MyInfoForm
@@ -249,22 +257,49 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
       )}
 
       {!hasPrivateAccess && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-medium text-ink">Join {block.name}</h2>
-          {joinOptions.length === 0 ? (
-            <p className="text-base text-muted">No residences have been set up for this community yet.</p>
-          ) : (
-            <ResidentIntakeForm
-              code={block.code}
-              residences={joinOptions}
-              boundary={block.boundary}
-              hiddenSignupPrompts={block.hiddenSignupPrompts}
-              autoApproveJoins={block.autoApproveJoins}
-              canvasType={block.canvasType}
-              signedInEmail={user?.email ?? null}
-            />
-          )}
-        </div>
+        <CommunityTabs
+          join={
+            <div className="space-y-3">
+              {!user && (
+                <div className="rounded-2xl border-2 border-accent bg-accent-soft p-5 space-y-3 mb-8">
+                  <div>
+                    <h2 className="text-xl font-semibold text-accent-soft-ink">Already joined?</h2>
+                    <p className="text-base text-ink">
+                      Sign in with the email you joined with. We&apos;ll email you a link that brings
+                      you right back here.
+                    </p>
+                  </div>
+                  <MagicLinkSignInForm returnPath={`/${block.code}`} layout="row" />
+                </div>
+              )}
+              <h2 className="text-lg font-medium text-ink">Join {block.name}</h2>
+              {joinOptions.length === 0 ? (
+                <p className="text-base text-muted">No residences have been set up for this community yet.</p>
+              ) : (
+                <ResidentIntakeForm
+                  code={block.code}
+                  residences={joinOptions}
+                  boundary={block.boundary}
+                  hiddenSignupPrompts={block.hiddenSignupPrompts}
+                  autoApproveJoins={block.autoApproveJoins}
+                  canvasType={block.canvasType}
+                  signedInEmail={user?.email ?? null}
+                />
+              )}
+            </div>
+          }
+          // Blank sheets show only residence names and shapes, which the join map already shows to
+          // anyone with the code.
+          print={
+            residences.length > 0 && (
+              <PrintSheets
+                blockName={block.name}
+                entries={buildPrintEntries(residences.map((residence) => ({ residence, residents: [] })))}
+                blankOnly
+              />
+            )
+          }
+        />
       )}
     </PageContainer>
   )

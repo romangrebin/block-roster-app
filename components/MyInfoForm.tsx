@@ -174,7 +174,7 @@ export default function MyInfoForm({
 
       <div className="space-y-2">
         <label className="block text-base font-medium text-ink">
-          About you <span className="text-muted font-normal">(shown to your neighbors)</span>
+          About you <span className="text-muted font-normal">(optional, shown to your neighbors)</span>
         </label>
         <textarea
           value={blurb}

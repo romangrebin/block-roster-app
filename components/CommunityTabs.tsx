@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-type TabKey = 'community' | 'library' | 'expedition' | 'my-info' | 'manage'
+type TabKey = 'join' | 'community' | 'library' | 'expedition' | 'print' | 'my-info' | 'manage'
 
 /**
- * Splits the community page into tabs once there's more than one thing to show a signed-in
- * viewer — Roman: "right now it's just kinda a single page with all the things on it," asked for
- * separate views for viewing the community, managing it, and a resident's own profile. Takes
+ * Splits the community page into tabs once there's more than one thing to show — the same
+ * structure for signed-out visitors (Join, Print) and for members (Community, Manage, …). Takes
  * already-rendered content as props rather than owning any data-fetching itself — the parent
  * Server Component still does every access check (isSteward/viewerResident) and simply omits a
  * section's prop when it doesn't apply, which also decides whether that tab appears at all.
@@ -19,35 +18,40 @@ type TabKey = 'community' | 'library' | 'expedition' | 'my-info' | 'manage'
  * toggle elsewhere on this page works the same way.
  */
 export default function CommunityTabs({
+  join,
   community,
   library,
   expedition,
+  print,
   myInfo,
   manage,
 }: {
-  community: ReactNode
+  join?: ReactNode
+  community?: ReactNode
   library?: ReactNode
   expedition?: ReactNode
+  print?: ReactNode
   myInfo?: ReactNode
   manage?: ReactNode
 }) {
   const tabs: { key: TabKey; label: string; content: ReactNode }[] = [
-    { key: 'community', label: 'Community', content: community },
+    ...(join ? [{ key: 'join' as const, label: 'Join', content: join }] : []),
+    ...(community ? [{ key: 'community' as const, label: 'Community', content: community }] : []),
     ...(library ? [{ key: 'library' as const, label: 'Lending Library', content: library }] : []),
     ...(expedition ? [{ key: 'expedition' as const, label: 'Expedition', content: expedition }] : []),
+    ...(print ? [{ key: 'print' as const, label: 'Print', content: print }] : []),
     ...(myInfo ? [{ key: 'my-info' as const, label: 'My info', content: myInfo }] : []),
     ...(manage ? [{ key: 'manage' as const, label: 'Manage', content: manage }] : []),
   ]
 
-  const [active, setActive] = useState<TabKey>('community')
+  const [active, setActive] = useState<TabKey>(tabs[0]?.key ?? 'community')
 
-  // Nothing to switch between for a plain approved resident with no extra tabs yet — the bar
-  // itself would just be visual noise for a single option.
-  if (tabs.length <= 1) return <>{community}</>
+  // With nothing to switch between, the bar itself would just be visual noise.
+  if (tabs.length <= 1) return <>{tabs[0]?.content}</>
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-1 border-b border-border overflow-x-auto">
+      <div className="flex gap-1 border-b border-border overflow-x-auto print:hidden">
         {tabs.map((tab) => (
           <button
             key={tab.key}
