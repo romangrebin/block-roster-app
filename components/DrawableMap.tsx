@@ -25,7 +25,8 @@ type Coordinates = [number, number]
 type Props = {
   /** Existing polygon to load into edit mode. Omit to start a fresh draw. */
   initialGeojson?: Feature<Polygon | MultiPolygon> | null
-  onChange: (feature: Feature<Polygon | MultiPolygon>) => void
+  /** Called with null when the shape is deleted (the trash control). */
+  onChange: (feature: Feature<Polygon | MultiPolygon> | null) => void
   center?: Coordinates
   zoom?: number
   className?: string
@@ -38,8 +39,10 @@ type Props = {
   boundary?: Feature<Polygon | MultiPolygon> | null
 }
 
-const DEFAULT_CENTER: Coordinates = [-93.265, 44.9778] // Minneapolis; override per deployment
-const DEFAULT_ZOOM = 16
+// Zoomed out on purpose: a fresh boundary starts from the location search, not from wherever the
+// map happens to open.
+const DEFAULT_CENTER: Coordinates = [-98.5, 39.8]
+const DEFAULT_ZOOM = 3
 
 function createMap(
   container: HTMLDivElement,
@@ -74,8 +77,9 @@ function createMap(
 function addDrawControl(
   map: maplibregl.Map,
   initialGeojson: Feature<Polygon | MultiPolygon> | null,
-  onChange: (feature: Feature<Polygon | MultiPolygon>) => void
-): void {
+  onChange: (feature: Feature<Polygon | MultiPolygon> | null) => void,
+  onDrawModeStart: () => void
+): DrawInstance {
   // Always show both controls, in edit mode too — otherwise exiting draw mode (Escape, a stray
   // click, whatever) leaves no way back in except canceling the whole flow and starting over.
   const draw = new MaplibreDraw({
@@ -87,8 +91,6 @@ function addDrawControl(
   if (initialGeojson) {
     const [featureId] = draw.add(initialGeojson)
     if (featureId) draw.changeMode('direct_select', { featureId })
-  } else {
-    draw.changeMode('draw_polygon')
   }
 
   map.on('draw.create', (e: DrawEvent) => {
@@ -104,6 +106,15 @@ function addDrawControl(
     const feature = e.features[0]
     if (feature) onChange(feature)
   })
+
+  map.on('draw.delete', () => onChange(null))
+
+  // Fires for the toolbar's polygon button, not for programmatic changeMode calls.
+  map.on('draw.modechange', (e: { mode: string }) => {
+    if (e.mode === 'draw_polygon') onDrawModeStart()
+  })
+
+  return draw
 }
 
 // Nominatim (OpenStreetMap's free geocoder) — no API key, fits the CARTO/OSM basemap already
@@ -178,9 +189,15 @@ export default function DrawableMap({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const searchMarkerRef = useRef<maplibregl.Marker | null>(null)
-  // Drives the "how to draw" hint below — irrelevant once there's already a shape (editing an
-  // existing one) or once the first point has landed, so it only shows for a genuinely blank draw.
+  const drawRef = useRef<DrawInstance | null>(null)
+  // Drive the hint at the bottom: "find your spot, then start drawing" → "how to draw" → nothing.
   const [hasShape, setHasShape] = useState(!!initialGeojson)
+  const [isDrawing, setIsDrawing] = useState(!!initialGeojson)
+
+  const startDrawing = () => {
+    drawRef.current?.changeMode('draw_polygon')
+    setIsDrawing(true)
+  }
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -191,10 +208,15 @@ export default function DrawableMap({
     map.once('load', () => {
       if (unmounted) return
       mapRef.current = map
-      addDrawControl(map, initialGeojson, (feature) => {
-        setHasShape(true)
-        onChange(feature)
-      })
+      drawRef.current = addDrawControl(
+        map,
+        initialGeojson,
+        (feature) => {
+          setHasShape(feature !== null)
+          onChange(feature)
+        },
+        () => setIsDrawing(true)
+      )
     })
 
     // map.remove() alone tears down every control and listener registered on the map (it loops
@@ -203,6 +225,7 @@ export default function DrawableMap({
     return () => {
       unmounted = true
       mapRef.current = null
+      drawRef.current = null
       map.remove()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,11 +244,24 @@ export default function DrawableMap({
           // previous one so repeated searches don't leave a trail of markers behind.
           searchMarkerRef.current?.remove()
           searchMarkerRef.current = new maplibregl.Marker().setLngLat(coords).addTo(map)
+          if (!hasShape) startDrawing()
         }}
       />
-      {!hasShape && (
-        <p className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 bg-surface rounded-full px-4 py-2 text-sm text-muted shadow-md text-center">
-          Click to add points, then click the first point again to close the shape.
+      {!isDrawing && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 w-11/12 max-w-md bg-surface rounded-2xl px-4 py-3 shadow-md text-center space-y-2">
+          <p className="text-sm text-muted">Search for an address on your block above, or zoom in to it yourself.</p>
+          <button
+            type="button"
+            onClick={startDrawing}
+            className="text-sm px-4 py-1.5 rounded-full border border-border text-ink hover:bg-surface-muted transition-colors cursor-pointer font-medium"
+          >
+            Start drawing here
+          </button>
+        </div>
+      )}
+      {isDrawing && !hasShape && (
+        <p className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 w-11/12 max-w-md bg-surface rounded-2xl px-4 py-2 text-sm text-muted shadow-md text-center">
+          Click each corner of your block, then click the first point again to close the shape.
         </p>
       )}
     </div>

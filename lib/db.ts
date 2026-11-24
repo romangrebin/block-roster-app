@@ -1,3 +1,4 @@
+import 'server-only'
 import { createSupabaseAdminClient } from './supabase-admin'
 import { createSupabaseRepository } from './adapters/supabase'
 import type { BlockRosterRepository } from './repository'

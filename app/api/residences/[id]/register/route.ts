@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { clientErrorMessage } from '@/lib/apiError'
 import { getUser } from '@/lib/auth'
 import { registerResident, verifyAndMaybeAutoApprove } from '@/lib/application'
 import { cappedText, MAX_TEXT, parseProfile, parseVisibility } from '@/lib/validation'
@@ -45,7 +46,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { status: 201 }
     )
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to register'
-    return NextResponse.json({ error: message }, { status: 400 })
+    return NextResponse.json({ error: clientErrorMessage(err, 'Failed to register') }, { status: 400 })
   }
 }

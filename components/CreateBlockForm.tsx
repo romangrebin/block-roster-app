@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import DrawableMap from './DrawableMap'
 import { MAX_TEXT } from '@/lib/validation'
+import BoundarySizeNote from './BoundarySizeNote'
+import { validatePolygonGeometry, MAX_BLOCK_AREA_KM2 } from '@/lib/geometryValidation'
 
 export default function CreateBlockForm() {
   const router = useRouter()
@@ -13,10 +15,20 @@ export default function CreateBlockForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const boundaryCheck = boundary ? validatePolygonGeometry(boundary, MAX_BLOCK_AREA_KM2) : null
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
       setError('Enter a community name to continue.')
+      return
+    }
+    if (!boundary) {
+      setError('Draw your community’s boundary on the map to continue.')
+      return
+    }
+    if (boundaryCheck && !boundaryCheck.ok) {
+      setError(boundaryCheck.error)
       return
     }
     setSubmitting(true)
@@ -53,11 +65,12 @@ export default function CreateBlockForm() {
       </div>
       <div>
         <label className="block text-base font-medium text-ink mb-1.5">
-          Boundary <span className="text-muted font-normal">(optional — draw now or skip and add it later)</span>
+          Boundary <span className="text-muted font-normal">(smaller is better, one block is ideal)</span>
         </label>
         <div className="h-[36rem] rounded-2xl overflow-hidden border border-border">
           <DrawableMap onChange={setBoundary} />
         </div>
+        {boundary && boundaryCheck && <BoundarySizeNote boundary={boundary} check={boundaryCheck} />}
       </div>
       {error && <p className="text-base text-red-600">{error}</p>}
       <button

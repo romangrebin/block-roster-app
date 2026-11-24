@@ -12,6 +12,9 @@ import type { Feature, Polygon, MultiPolygon } from 'geojson'
 // (10 km² is roughly 1,000 typical city blocks), small enough to catch "drew the wrong thing"
 // mistakes (an entire zip code or city — Minneapolis alone is ~150 km²).
 export const MAX_BLOCK_AREA_KM2 = 10
+// Above this the create form nudges toward something smaller: roughly a handful of city blocks.
+// One block is the ideal community size.
+export const RECOMMENDED_BLOCK_AREA_KM2 = 0.1
 // A single address/parcel: should never be more than a fraction of a block.
 export const MAX_PARCEL_AREA_KM2 = 0.05
 
@@ -32,9 +35,13 @@ export function validatePolygonGeometry(
   if (kinks(feature).features.length > 0) {
     return { ok: false, error: 'The polygon geometry is invalid. Please redraw.' }
   }
-  const areaSqKm = area(feature) / 1_000_000
+  const areaSqKm = areaKm2(feature)
   if (areaSqKm > maxAreaKm2) {
     return { ok: false, error: `Shape is too large (${areaSqKm.toFixed(3)} km²). Max is ${maxAreaKm2} km².` }
   }
   return { ok: true }
+}
+
+export function areaKm2(feature: Feature<Polygon | MultiPolygon>): number {
+  return area(feature) / 1_000_000
 }
