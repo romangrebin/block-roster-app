@@ -32,8 +32,14 @@ export type Block = {
   hiddenSignupPrompts: SignupPromptKey[]
   // Shows "Ask to borrow" on Lending Library items, which emails the owner.
   borrowRequestsEnabled: boolean
+  // Steward-controlled, off by default, like the Lending Library: turning it off hides the tab
+  // without deleting any notes.
+  corkboardEnabled: boolean
   // Pseudo-secret slug for the public/private landing page at /<code> — see lib/blockCode.ts.
   code: string
+  // Permanent key behind printed QR codes: /c/<printCode> redirects to /<code>. Never changes,
+  // so printouts outlive a renamed code.
+  printCode: string
   // Shown to anyone who knows the code, no sign-in required.
   publicBlurb: string | null
   // Shown only to a signed-in approved resident or active steward — see
@@ -54,6 +60,7 @@ export type BlockInput = {
   autoApproveJoins?: boolean
   hiddenSignupPrompts?: SignupPromptKey[]
   borrowRequestsEnabled?: boolean
+  corkboardEnabled?: boolean
 }
 
 export type Residence = {
@@ -197,6 +204,31 @@ export type BorrowRequest = {
   itemId: string
   requesterId: string
   requestedAt: string
+}
+
+export type CorkboardNote = {
+  id: string
+  // Like an item, a note is its author's, not their address's.
+  residentId: string
+  // Exactly one of these is set: a note is either text or a photo.
+  text: string | null
+  // Path in the private corkboard-photos storage bucket.
+  imagePath: string | null
+  // Which of the board's columns the note is in (0 to CORKBOARD_COLUMN_COUNT - 1), and its order
+  // within that column, ascending. Anyone can move any note.
+  boardColumn: number
+  position: number
+  createdAt: string
+  updatedAt: string | null
+}
+
+export const CORKBOARD_COLUMN_COUNT = 3
+
+// A neighbor who raised their hand on someone else's note (shown as a heart on a photo).
+export type CorkboardInterest = {
+  noteId: string
+  residentId: string
+  createdAt: string
 }
 
 export type ExpeditionRun = {

@@ -1,4 +1,5 @@
 import type { Feature, MultiPolygon, Polygon, Position } from 'geojson'
+import QRCode from 'qrcode'
 import type { DirectoryEntry } from './application'
 
 export type PrintResident = {
@@ -196,4 +197,30 @@ function svgPath(polygons: Point[][][]): string {
     .flat()
     .map((ring) => `M${ring.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join('L')}Z`)
     .join('')
+}
+
+// The site's permanent domain, not the current origin, so a sheet printed from a dev machine or a
+// preview deploy still points somewhere that lasts.
+const PRINT_SITE = 'ourblock.community'
+
+/** What the QR code encodes: the redirect that survives a renamed community code. */
+export function printQrUrl(printCode: string): string {
+  return `https://${PRINT_SITE}/c/${printCode}`
+}
+
+/** The link printed under the QR code: the steward's memorable code, for typing by hand. */
+export function printTextLink(code: string): string {
+  return `${PRINT_SITE}/${code}`
+}
+
+/** A QR code as one SVG path, one unit per module. No quiet zone; leave blank space around it. */
+export function qrCodePath(text: string): { path: string; size: number } {
+  const { modules } = QRCode.create(text, { errorCorrectionLevel: 'M' })
+  const squares: string[] = []
+  for (let row = 0; row < modules.size; row++) {
+    for (let column = 0; column < modules.size; column++) {
+      if (modules.get(row, column)) squares.push(`M${column},${row}h1v1h-1z`)
+    }
+  }
+  return { path: squares.join(''), size: modules.size }
 }

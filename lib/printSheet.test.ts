@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { fitText, householdNames, placeHouses, spreadLabels, type PrintEntry, type PrintResident } from './printSheet'
+import {
+  fitText,
+  householdNames,
+  placeHouses,
+  printQrUrl,
+  printTextLink,
+  qrCodePath,
+  spreadLabels,
+  type PrintEntry,
+  type PrintResident,
+} from './printSheet'
 
 const resident = (name: string): PrintResident => ({ name, phone: null, email: null, blurb: null, details: [] })
 
@@ -70,5 +80,20 @@ describe('placeHouses', () => {
   it('skips residences with no shape', () => {
     const noShape: PrintEntry = { residenceId: 'x', label: 'x', residents: [], polygons: [] }
     expect(placeHouses([noShape], box)).toEqual([])
+  })
+})
+
+describe('printed links', () => {
+  it('encodes the permanent print code in the QR code and prints the memorable code as text', () => {
+    expect(printQrUrl('3f9a1c07be')).toBe('https://ourblock.community/c/3f9a1c07be')
+    expect(printTextLink('brave-otter-42')).toBe('ourblock.community/brave-otter-42')
+  })
+})
+
+describe('qrCodePath', () => {
+  it('stays a small QR code for a print URL', () => {
+    const { path, size } = qrCodePath(printQrUrl('3f9a1c07be'))
+    expect(size).toBeLessThanOrEqual(29)
+    expect(path.startsWith('M0,0h1v1h-1z')).toBe(true)
   })
 })

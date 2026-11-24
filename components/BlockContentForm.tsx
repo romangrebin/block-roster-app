@@ -28,6 +28,7 @@ export default function BlockContentForm({
   residentExportEnabled: initialResidentExportEnabled,
   lendingLibraryEnabled: initialLendingLibraryEnabled,
   borrowRequestsEnabled: initialBorrowRequestsEnabled,
+  corkboardEnabled: initialCorkboardEnabled,
   autoApproveJoins: initialAutoApproveJoins,
   hiddenSignupPrompts: initialHiddenSignupPrompts,
 }: {
@@ -39,6 +40,7 @@ export default function BlockContentForm({
   residentExportEnabled: boolean
   lendingLibraryEnabled: boolean
   borrowRequestsEnabled: boolean
+  corkboardEnabled: boolean
   autoApproveJoins: boolean
   hiddenSignupPrompts: SignupPromptKey[]
 }) {
@@ -53,6 +55,7 @@ export default function BlockContentForm({
   const [residentExportEnabled, setResidentExportEnabled] = useState(initialResidentExportEnabled)
   const [lendingLibraryEnabled, setLendingLibraryEnabled] = useState(initialLendingLibraryEnabled)
   const [borrowRequestsEnabled, setBorrowRequestsEnabled] = useState(initialBorrowRequestsEnabled)
+  const [corkboardEnabled, setCorkboardEnabled] = useState(initialCorkboardEnabled)
   const [autoApproveJoins, setAutoApproveJoins] = useState(initialAutoApproveJoins)
   const [hiddenSignupPrompts, setHiddenSignupPrompts] = useState(initialHiddenSignupPrompts)
 
@@ -69,6 +72,7 @@ export default function BlockContentForm({
     residentExportEnabled !== initialResidentExportEnabled ||
     lendingLibraryEnabled !== initialLendingLibraryEnabled ||
     borrowRequestsEnabled !== initialBorrowRequestsEnabled ||
+    corkboardEnabled !== initialCorkboardEnabled ||
     autoApproveJoins !== initialAutoApproveJoins ||
     [...hiddenSignupPrompts].sort().join() !== [...initialHiddenSignupPrompts].sort().join()
 
@@ -90,6 +94,7 @@ export default function BlockContentForm({
           residentExportEnabled,
           lendingLibraryEnabled,
           borrowRequestsEnabled,
+          corkboardEnabled,
           autoApproveJoins,
           hiddenSignupPrompts,
         }),
@@ -215,6 +220,18 @@ export default function BlockContentForm({
           </span>
         </label>
       )}
+      <label className="flex items-center gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={corkboardEnabled}
+          onChange={(e) => setCorkboardEnabled(e.target.checked)}
+          className="w-4 h-4 accent-accent cursor-pointer"
+        />
+        <span className="text-base text-ink">
+          Enable the Corkboard{' '}
+          <span className="text-muted font-normal">(residents can pin short notes for each other)</span>
+        </span>
+      </label>
       <label className="flex items-center gap-2.5 cursor-pointer">
         <input
           type="checkbox"

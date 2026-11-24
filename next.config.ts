@@ -17,8 +17,9 @@ const contentSecurityPolicy = [
   "font-src 'self' data:",
   // basemaps.cartocdn.com is used bare (no subdomain), which `*.basemaps.cartocdn.com` does
   // NOT match — both forms are listed. MapLibre fetches raster tiles via fetch(), so the CARTO
-  // host has to be in connect-src too, not just img-src.
-  "img-src 'self' data: blob: https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com",
+  // host has to be in connect-src too, not just img-src. Supabase serves Corkboard photos
+  // (signed storage URLs).
+  "img-src 'self' data: blob: https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com https://*.supabase.co",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.carto.com https://fonts.openmaptiles.org https://nominatim.openstreetmap.org https://overpass-api.de https://maps.mail.ru https://gateway.umami.is",
   "worker-src 'self' blob:",
   "base-uri 'self'",
