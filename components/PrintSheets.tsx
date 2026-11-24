@@ -15,7 +15,7 @@ import {
   type PrintResident,
 } from '@/lib/printSheet'
 
-type LayoutKey = 'map-and-directory' | 'fill-in'
+type LayoutKey = 'map-and-directory' | 'map-and-phones' | 'fill-in'
 type VersionKey = 'filled' | 'blank'
 
 const LAYOUT_OPTIONS: { key: LayoutKey; label: string; description: string }[] = [
@@ -23,6 +23,11 @@ const LAYOUT_OPTIONS: { key: LayoutKey; label: string; description: string }[] =
     key: 'map-and-directory',
     label: 'Map + directory',
     description: 'A numbered map with names down both sides, plus a second page for contact info and more about each household.',
+  },
+  {
+    key: 'map-and-phones',
+    label: 'Map + phones',
+    description: 'One page: the numbered map, with names and phone numbers down both sides.',
   },
   {
     key: 'fill-in',
@@ -58,8 +63,12 @@ const MAP_BOX = { x: 166, y: CONTENT_TOP, width: 208, height: MAP_BOTTOM - CONTE
 
 const PREFERRED_LABEL_HEIGHT: Record<LayoutKey, number> = {
   'map-and-directory': 26,
+  'map-and-phones': 34,
   'fill-in': 42,
 }
+
+/** Layouts that number each house on the map and key the side labels to those numbers. */
+const NUMBERED_LAYOUTS: LayoutKey[] = ['map-and-directory', 'map-and-phones']
 
 const INK = '#231f1a'
 const MUTED = '#6b6459'
@@ -97,7 +106,7 @@ export default function PrintSheets({
   const today = useTodayOnClient()
   const asOf = today ? `As of ${today}` : ''
   const houses = placeHouses(entries, MAP_BOX)
-  const hasDirectoryPage = layout !== 'fill-in'
+  const hasDirectoryPage = layout === 'map-and-directory'
 
   return (
     <div className="space-y-6">
@@ -146,7 +155,7 @@ export default function PrintSheets({
                 entries={entries}
                 houses={houses}
                 filled={filled}
-                showNumbers={layout === 'map-and-directory'}
+                showNumbers
               />
             </Paper>
           )}
@@ -236,7 +245,7 @@ function MapPage({
           fillRule="evenodd"
         />
       ))}
-      {layout === 'map-and-directory' &&
+      {NUMBERED_LAYOUTS.includes(layout) &&
         houses.map((house) => (
           <text
             key={house.entry.residenceId}
@@ -281,6 +290,7 @@ type LabelProps = { house: PlacedHouse; top: number; height: number; filled: boo
 
 const LABELS: Record<LayoutKey, (props: LabelProps) => ReactNode> = {
   'map-and-directory': NumberedLabel,
+  'map-and-phones': NumberedPhoneLabel,
   'fill-in': FillInLabel,
 }
 
@@ -304,11 +314,10 @@ function SideLabels({ layout, filled, houses }: { layout: LayoutKey; filled: boo
   )
 }
 
-function NumberedLabel({ house, top, height, filled }: LabelProps) {
+function HouseNumberBadge({ house, top }: { house: PlacedHouse; top: number }) {
   const column = COLUMNS[house.side]
-  const writingLineY = top + height - 3
   return (
-    <g>
+    <>
       <circle cx={column.x + 5} cy={top + 5.5} r={5} fill="none" stroke={INK} strokeWidth={0.6} />
       <text
         x={column.x + 5}
@@ -324,12 +333,51 @@ function NumberedLabel({ house, top, height, filled }: LabelProps) {
       <text x={column.x + 14} y={top + 8} fontSize={7} fill={MUTED}>
         {fitText(house.entry.label, COLUMN_WIDTH - 14, 7)}
       </text>
+    </>
+  )
+}
+
+function NumberedLabel({ house, top, height, filled }: LabelProps) {
+  const column = COLUMNS[house.side]
+  const writingLineY = top + height - 3
+  return (
+    <g>
+      <HouseNumberBadge house={house} top={top} />
       {filled && (
         <text x={column.x} y={writingLineY - 2} fontSize={9} fontWeight={600} fill={INK}>
           {fitText(householdNames(house.entry.residents), COLUMN_WIDTH, 9)}
         </text>
       )}
       <line x1={column.x} x2={column.x + COLUMN_WIDTH} y1={writingLineY} y2={writingLineY} stroke={RULE} strokeWidth={0.5} />
+    </g>
+  )
+}
+
+/** Number + residence, then a names line and a phone line (printed when filled, blank for handwriting). */
+function NumberedPhoneLabel({ house, top, height, filled }: LabelProps) {
+  const column = COLUMNS[house.side]
+  const residents = house.entry.residents
+  const printedLines = filled
+    ? [householdNames(residents), residents.flatMap((resident) => resident.phone ?? []).join(' · ')]
+    : []
+  // Squeeze the two lines into whatever height the label got, so a crowded side still fits the page.
+  const lineSpacing = Math.min(11, (height - 13) / 2)
+  return (
+    <g>
+      <HouseNumberBadge house={house} top={top} />
+      {[0, 1].map((index) => {
+        const lineY = top + 11 + (index + 1) * lineSpacing
+        return (
+          <g key={index}>
+            {printedLines[index] && (
+              <text x={column.x} y={lineY - 2} fontSize={8.5} fontWeight={index === 0 ? 600 : 400} fill={INK}>
+                {fitText(printedLines[index], COLUMN_WIDTH, 8.5)}
+              </text>
+            )}
+            <line x1={column.x} x2={column.x + COLUMN_WIDTH} y1={lineY} y2={lineY} stroke={RULE} strokeWidth={0.5} />
+          </g>
+        )
+      })}
     </g>
   )
 }
