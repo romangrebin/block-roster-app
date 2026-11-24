@@ -132,14 +132,11 @@ export default async function Home() {
       </div>
 
       {COMMUNITY_CREATION_OPEN ? (
-        <div className="text-center">
-          {!user ? (
-            <p className="text-base text-muted">Sign in (top right) to see or create your community.</p>
-          ) : (
-            <Link href="/blocks/new" data-umami-event="start-community" className={PRIMARY_BUTTON_CLASS}>
-              {blocks.some((b) => b.role === "steward") ? "Create another community" : "Create a community"}
-            </Link>
-          )}
+        <div className="text-center space-y-4">
+          {!user && <p className="text-base text-muted">Sign in (top right) to see your community.</p>}
+          <Link href="/blocks/new" data-umami-event="start-community" className={PRIMARY_BUTTON_CLASS}>
+            {blocks.some((b) => b.role === "steward") ? "Create another community" : "Create a community"}
+          </Link>
         </div>
       ) : (
         <div className="text-center space-y-4">

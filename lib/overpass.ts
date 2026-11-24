@@ -48,9 +48,9 @@ type OverpassElement = {
 }
 
 // Stripped off the end of a street name for both display and de-duplication — OSM data is
-// inconsistently tagged in practice (the same real address might be "Longfellow Avenue South" on
-// one element and "Longfellow Avenue" on another), and Roman asked for the shorter form anyway
-// ("4504 Longfellow" rather than "4504 Longfellow Avenue South").
+// inconsistently tagged in practice (the same real address might be "Elm Street South" on
+// one element and "Elm Street" on another), and Roman asked for the shorter form anyway
+// ("123 Elm" rather than "123 Elm Street South").
 const DIRECTION_WORDS = new Set([
   'north',
   'south',
@@ -101,7 +101,7 @@ const STREET_TYPE_WORDS = new Set([
   'sq',
 ])
 
-/** "4504 Longfellow Avenue South" -> "4504 Longfellow" — strips a trailing direction and/or
+/** "123 Elm Street South" -> "123 Elm" — strips a trailing direction and/or
  * street-type word, but always keeps at least a house number plus one street-name word. */
 export function normalizeAddressLabel(label: string): string {
   const words = label.trim().split(/\s+/)

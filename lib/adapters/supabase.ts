@@ -312,6 +312,7 @@ function createBlockRepository(client: SupabaseClient): BlockRepository {
             name: input.name,
             canvas_type: input.canvasType ?? 'geo_map',
             boundary: input.boundary ?? null,
+            hidden_signup_prompts: input.hiddenSignupPrompts ?? [],
             code: input.code ?? generateBlockCode(),
           })
           .select()

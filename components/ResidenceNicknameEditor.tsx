@@ -6,7 +6,7 @@ import { useSaveAndRefresh } from './useSaveAndRefresh'
 
 /**
  * A friendlier, resident-set name for a residence, separate from the steward-owned official
- * label (ResidenceControls) — "Yellow house on the corner" vs "4504 Longfellow Avenue". Shown
+ * label (ResidenceControls) — "Yellow house on the corner" vs "123 Elm Street". Shown
  * to a residence's own approved resident(s) or a steward, only once the row is selected (same
  * reveal-on-select pattern as everything else in the residents sub-list).
  */

@@ -7,6 +7,7 @@ import {
   suggestAddressesWithinBoundary,
   normalizeAddressLabel,
   type SuggestedAddress,
+  type SuggestedAddressResult,
   type SuggestionPreview,
 } from '@/lib/overpass'
 
@@ -14,6 +15,21 @@ type Status = 'idle' | 'loading' | 'loaded' | 'failed'
 
 const OSM_SLOWNESS_WARNING =
   "Heads up: this uses OpenStreetMap's free public servers, which are often overloaded. A search can take a minute or more, and it may not work at all."
+
+// One search per boundary for as long as the page is open, so closing the panel or moving to
+// another page mid-search doesn't throw it away: coming back re-attaches to it. A failed search
+// is forgotten, so Try again always starts fresh.
+const searchesByBoundary = new Map<string, Promise<SuggestedAddressResult>>()
+
+function searchOnce(boundaryKey: string, boundary: Feature<Polygon | MultiPolygon>): Promise<SuggestedAddressResult> {
+  let search = searchesByBoundary.get(boundaryKey)
+  if (!search) {
+    search = suggestAddressesWithinBoundary(boundary)
+    search.catch(() => searchesByBoundary.delete(boundaryKey))
+    searchesByBoundary.set(boundaryKey, search)
+  }
+  return search
+}
 
 /**
  * Click-to-add address suggestions within the community's drawn boundary, via OSM's free
@@ -36,21 +52,32 @@ export default function SuggestedAddresses({
   onPreviewChange?: (preview: SuggestionPreview[]) => void
 }) {
   const { isPending: submitting, saveAndRefresh } = useSaveAndRefresh()
-  const [status, setStatus] = useState<Status>('idle')
+  const boundaryKey = JSON.stringify(boundary.geometry)
+  const [status, setStatus] = useState<Status>(() => (searchesByBoundary.has(boundaryKey) ? 'loading' : 'idle'))
   const [suggestions, setSuggestions] = useState<SuggestedAddress[]>([])
   const [truncatedFrom, setTruncatedFrom] = useState<number | null>(null)
   const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set())
+  const [addError, setAddError] = useState<string | null>(null)
 
-  const handleSearch = () => {
-    setStatus('loading')
-    suggestAddressesWithinBoundary(boundary)
+  const showResultsOf = (search: Promise<SuggestedAddressResult>) =>
+    search
       .then((result) => {
         setSuggestions(result.addresses)
         setTruncatedFrom(result.truncated ? result.totalFound : null)
         setStatus('loaded')
       })
       .catch(() => setStatus('failed'))
+
+  const handleSearch = () => {
+    setStatus('loading')
+    showResultsOf(searchOnce(boundaryKey, boundary))
   }
+
+  useEffect(() => {
+    const earlierSearch = searchesByBoundary.get(boundaryKey)
+    if (earlierSearch) showResultsOf(earlierSearch)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Normalized on both sides — suggestion labels come pre-normalized from lib/overpass.ts, but an
   // existing label might have been typed by hand (or added before this normalization existed)
@@ -106,19 +133,28 @@ export default function SuggestedAddresses({
           body: JSON.stringify({ labels: toAdd.map((s) => s.label) }),
         })
         const body = await res.json()
+        if (!res.ok) {
+          setAddError(body.error ?? 'Failed to add addresses')
+          return false
+        }
+        setAddError(null)
 
-        if (res.ok) {
-          // Created in the same order the labels were sent, so index-matching back to toAdd is safe.
-          await Promise.all(
-            (body.residences as { id: string }[]).map((residence, i) => {
-              const shape = toAdd[i].shape
-              if (!shape) return null
-              return fetch(`/api/residences/${residence.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ shape }),
-              })
+        // Created in the same order the labels were sent, so index-matching back to toAdd is safe.
+        const shapeResponses = await Promise.all(
+          (body.residences as { id: string }[]).map((residence, i) => {
+            const shape = toAdd[i].shape
+            if (!shape) return null
+            return fetch(`/api/residences/${residence.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ shape }),
             })
+          })
+        )
+        const failedShapeCount = shapeResponses.filter((response) => response && !response.ok).length
+        if (failedShapeCount > 0) {
+          setAddError(
+            `Added, but ${failedShapeCount} shape${failedShapeCount === 1 ? '' : 's'} couldn't be saved. Draw ${failedShapeCount === 1 ? 'it' : 'them'} from the residence's detail panel.`
           )
         }
         return true
@@ -148,9 +184,19 @@ export default function SuggestedAddresses({
 
   if (status === 'loading') {
     return (
-      <div className="space-y-1">
-        <p className="text-sm text-ink">Searching for addresses within your community boundary…</p>
-        <p className="text-sm text-muted">{OSM_SLOWNESS_WARNING}</p>
+      <div role="status" className="space-y-1.5 rounded-2xl bg-accent-soft px-4 py-3">
+        <p className="flex items-center gap-2.5 text-sm font-medium text-accent-soft-ink">
+          <span
+            aria-hidden
+            className="size-4 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin"
+          />
+          Asking OpenStreetMap for addresses inside your boundary…
+        </p>
+        <p className="text-sm text-accent-soft-ink">{OSM_SLOWNESS_WARNING}</p>
+        <p className="text-sm text-accent-soft-ink">
+          Feel free to keep working. The search continues while you use other tabs or close this panel,
+          but not if you reload the page or leave the site.
+        </p>
       </div>
     )
   }
@@ -159,14 +205,14 @@ export default function SuggestedAddresses({
     return (
       <div className="space-y-1.5">
         <p className="text-sm text-red-600">
-          OpenStreetMap didn&apos;t respond. Its free servers are often overloaded. Try again later, or
-          add residences by name or by drawing them instead.
+          OpenStreetMap didn&apos;t respond. Its free servers are often overloaded, and a second try
+          usually works. If it keeps failing, add residences by name or by drawing them instead.
         </p>
         <button
           onClick={handleSearch}
-          className="text-sm px-4 py-1.5 rounded-full border border-border text-ink hover:bg-surface-muted transition-colors cursor-pointer font-medium"
+          className="text-sm px-4 py-1.5 rounded-full bg-accent text-white hover:bg-accent-dark transition-colors cursor-pointer font-medium"
         >
-          Retry
+          Try again
         </button>
       </div>
     )
@@ -229,6 +275,7 @@ export default function SuggestedAddresses({
       >
         {submitting ? 'Adding…' : `Add ${selectedLabels.size} selected`}
       </button>
+      {addError && <p className="text-sm text-red-600">{addError}</p>}
     </div>
   )
 }

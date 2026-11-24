@@ -242,7 +242,7 @@ export default function BlockContentForm({
         <span className="text-base text-ink">
           Auto-approve new joiners{' '}
           <span className="text-muted font-normal">
-            (useful for when expecting joiners. Skips the approval step — you&apos;ll still get an email every time someone joins)
+            (useful when you&apos;re expecting joiners. Skips the approval step, so anyone with the code can see the directory. You&apos;ll still get an email every time someone joins)
           </span>
         </span>
       </label>

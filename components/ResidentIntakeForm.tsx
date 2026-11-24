@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import ResidenceMapPicker from './ResidenceMapPicker'
@@ -74,7 +75,7 @@ export default function ResidentIntakeForm({
   signedInEmail?: string | null
 }) {
   const [sent, setSent] = useState(false)
-  const [registered, setRegistered] = useState<{ autoApproved: boolean } | null>(null)
+  const [awaitingApproval, setAwaitingApproval] = useState(false)
   // Deliberately no default residence — a pre-filled dropdown looks like an already-made choice,
   // and picking the wrong house here is exactly the mistake this form shouldn't make easy.
   const [residenceId, setResidenceId] = useState('')
@@ -86,6 +87,8 @@ export default function ResidentIntakeForm({
   const [phone, setPhone] = useState('')
   const [phoneVisibility, setPhoneVisibility] = useState<ContactVisibility>('block_wide')
   const [submitting, setSubmitting] = useState(false)
+  const router = useRouter()
+  const [refreshing, startRefresh] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   const supabase = createSupabaseBrowserClient()
@@ -116,9 +119,17 @@ export default function ResidentIntakeForm({
       return
     }
 
+    if (body.autoVerified && body.autoApproved) {
+      // Already signed in and approved: reload the page's data so it shows them as a member.
+      startRefresh(() => {
+        setSubmitting(false)
+        router.refresh()
+      })
+      return
+    }
     if (body.autoVerified) {
       setSubmitting(false)
-      setRegistered({ autoApproved: body.autoApproved })
+      setAwaitingApproval(true)
       return
     }
 
@@ -138,15 +149,11 @@ export default function ResidentIntakeForm({
     setSent(true)
   }
 
-  if (registered) {
+  if (awaitingApproval) {
     return (
       <div className="space-y-1">
         <p className="text-lg font-medium text-ink">You&apos;re registered!</p>
-        <p className="text-base text-muted">
-          {registered.autoApproved
-            ? "You're approved and in. Refresh the page to see your neighbors."
-            : 'A steward will approve you soon — no further action needed.'}
-        </p>
+        <p className="text-base text-muted">A steward will approve you soon — no further action needed.</p>
       </div>
     )
   }
@@ -299,10 +306,10 @@ export default function ResidentIntakeForm({
       <button
         type="submit"
         data-umami-event="register"
-        disabled={!residenceId || !name.trim() || !email.trim() || submitting}
+        disabled={!residenceId || !name.trim() || !email.trim() || submitting || refreshing}
         className="w-full bg-accent text-white py-3 rounded-full text-base font-medium hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-[0_8px_16px_-6px_rgba(194,84,46,0.5)]"
       >
-        {submitting ? 'Sending link…' : 'Register'}
+        {submitting || refreshing ? (signedInEmail ? 'Registering…' : 'Sending link…') : 'Register'}
       </button>
     </form>
   )

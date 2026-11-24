@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { clientErrorMessage } from '@/lib/apiError'
 import { getUser } from '@/lib/auth'
 import { promoteResidentToSteward, resolveStewardForResident } from '@/lib/application'
 
@@ -15,7 +16,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const promoted = await promoteResidentToSteward(residentId, result.steward.id)
     return NextResponse.json({ steward: promoted })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to promote resident'
-    return NextResponse.json({ error: message }, { status: 400 })
+    return NextResponse.json({ error: clientErrorMessage(err, 'Failed to promote resident') }, { status: 400 })
   }
 }

@@ -12,11 +12,25 @@ what keeps it from going stale when whoever's running it moves away.
 1. **A steward sets up the community** — draws the boundary, lists the addresses (by hand or
    from OpenStreetMap). Day one starts with every address in place, no residents yet.
 2. **Neighbors join with a code, not a public link.** Pick your residence, verify your email.
-   The code (`/<code>`, e.g. `curious-otter-42`) isn't listed anywhere.
+   The code (`/<code>`, e.g. `curious-otter-42`) isn't listed anywhere. Stewards can also print
+   paper sheets (Print tab) with a QR code that keeps working even if the code is renamed.
 3. **A steward approves you**, and then it's your community too — see your neighbors, read what
    your steward posted, export anytime.
 
-Optional: a per-community **Lending Library** (tools, books, games) a steward can switch on.
+### Optional features
+
+Each is a per-community switch on the steward's Manage tab, off by default:
+
+- **Lending Library** — residents list tools, books, games, etc. to lend each other. Borrowing
+  is informal; nothing is tracked in the app.
+  - **"Ask to borrow" button** — emails the item's owner and shares the asker's email with them.
+- **Corkboard** — a board of short notes and photo notes from residents, with reactions.
+- **Auto-approve new joiners** — skips the approval step; stewards still get an email per join.
+- **Resident CSV export** — lets residents export the directory themselves (stewards always can).
+- **Sign-up questions** — stewards pick which optional profile questions the sign-up form asks.
+
+New communities: `COMMUNITY_CREATION_OPEN` in `lib/admin.ts` controls whether signed-in users
+can create one. While it's off, `/blocks/new` shows a request form that emails the admins.
 
 ## Tech
 
@@ -41,8 +55,9 @@ npm run dev                   # http://localhost:3000
 
 Required env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_CARTO_API_KEY`. Optional: `ADMIN_EMAILS`,
-`RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `SITE_URL` (steward notification emails). Full notes
-are in `.env.local.example`.
+`RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `SITE_URL` (notification emails),
+`COMMUNITY_REQUESTS_DISABLED` (turns off the public community-request form). Full notes are in
+`.env.local.example`.
 
 Database schema lives in `supabase/migrations/` (the single source of truth — no `schema.sql`).
 Apply changes with `supabase db push`.
@@ -57,10 +72,11 @@ npm test
 
 | Path | What's there |
 |---|---|
-| `app/` | Routes — `page.tsx` (landing), `[code]/` (the one community page for everyone), `admin/`, `api/` |
-| `components/` | Client components — forms, maps, the residences workspace |
-| `lib/` | `application.ts` (cross-table logic), `repository.ts` + `adapters/` (data access), `auth.ts`, `validation.ts`, map/CSV/geometry helpers |
+| `app/` | Routes — `page.tsx` (landing), `[code]/` (the one community page for everyone), `blocks/new/` (create a community), `c/[printCode]/` (QR-code redirect), `admin/`, `api/` |
+| `components/` | Client components — forms, maps, the residences workspace, Lending Library, Corkboard, print sheets |
+| `lib/` | `application.ts` (cross-table logic), `repository.ts` + `adapters/` (data access), `auth.ts`, `validation.ts`, map/CSV/geometry/print helpers |
 | `supabase/migrations/` | Schema |
+| `scripts/` | One-off scripts (seeding the Bodie demo community) |
 
 ## License
 

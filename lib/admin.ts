@@ -15,9 +15,13 @@ export function isAdmin(email: string | null | undefined): boolean {
 }
 
 /** Flip to true to allow creating communities again. While false, /blocks/new asks everyone (admins too) for a request instead. */
-export const COMMUNITY_CREATION_OPEN = false
+export const COMMUNITY_CREATION_OPEN = true
 
-/** The "start a community" request form is public, so this env var is its off switch if it ever attracts spam. */
+/** Admins are exempt. Deleting a community frees its slot. */
+export const MAX_FOUNDED_COMMUNITIES_PER_USER = 4
+
+/** The public "start a community" request form: only needed while creation is closed, and the env var is its off switch if it ever attracts spam. */
 export function communityRequestsEnabled(): boolean {
+  if (COMMUNITY_CREATION_OPEN) return false
   return process.env.COMMUNITY_REQUESTS_DISABLED?.trim().toLowerCase() !== 'true'
 }

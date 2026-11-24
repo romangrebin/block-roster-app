@@ -1,13 +1,16 @@
 import { notFound } from 'next/navigation'
 import { getUserFromServerComponent } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
-import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory, listRequestedItemIds, listPastExpeditions, type DirectoryEntry } from '@/lib/application'
+import { resolveActiveSteward, resolveApprovedResident, getResidentDirectory, listRequestedItemIds, listPastExpeditions, hasNeighborsBesides, type DirectoryEntry } from '@/lib/application'
 import { buildPrintEntries } from '@/lib/printSheet'
 import PrintSheets from '@/components/PrintSheets'
 import MagicLinkSignInForm from '@/components/MagicLinkSignInForm'
 import type { Resident, ContactMethod } from '@/lib/types'
 import ResidentIntakeForm from '@/components/ResidentIntakeForm'
 import JoinLinkBox from '@/components/JoinLinkBox'
+import SetupChecklist from '@/components/SetupChecklist'
+import DeleteCommunityButton from '@/components/DeleteCommunityButton'
+import BoundaryEditor from '@/components/BoundaryEditor'
 import ResidencesWorkspace from '@/components/ResidencesWorkspace'
 import BlockContentForm from '@/components/BlockContentForm'
 import MyInfoForm from '@/components/MyInfoForm'
@@ -149,6 +152,10 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
       ? await listRequestedItemIds(viewerResident.id, { includeExpired: isExpedition })
       : []
   const pastExpeditions = isExpedition && hasPrivateAccess ? await listPastExpeditions(block.id, 20) : []
+  const hasNeighbors = hasNeighborsBesides(residents, viewerResident?.id ?? null)
+  const showSetupChecklist =
+    isSteward && !(block.boundary && residences.length > 0 && viewerResident && block.publicBlurb && hasNeighbors)
+
   const setAsideItemNames = libraryItems
     .filter(({ item }) => requestedItemIds.includes(item.id))
     .map(({ item }) => item.name)
@@ -164,6 +171,17 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
         )}
         {block.publicBlurb && <MarkdownText text={block.publicBlurb} className="text-lg text-muted mt-2" />}
       </div>
+
+      {showSetupChecklist && (
+        <SetupChecklist
+          code={block.code}
+          hasBoundary={block.boundary !== null}
+          hasResidences={residences.length > 0}
+          hasRegisteredOwnHome={viewerResident !== null}
+          hasWelcomeMessage={!!block.publicBlurb}
+          hasNeighbors={hasNeighbors}
+        />
+      )}
 
       {hasPrivateAccess && (
         <CommunityTabs
@@ -278,6 +296,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
             isSteward && (
               <div className="space-y-6 border border-border rounded-2xl bg-surface-muted p-5">
                 <JoinLinkBox code={block.code} />
+                {block.canvasType === 'geo_map' && <BoundaryEditor blockId={block.id} boundary={block.boundary} />}
                 <BlockContentForm
                   blockId={block.id}
                   name={block.name}
@@ -292,6 +311,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                   hiddenSignupPrompts={block.hiddenSignupPrompts}
                 />
                 {pastExpeditions.length > 0 && <PastExpeditions expeditions={pastExpeditions} canDelete />}
+                {!hasNeighbors && <DeleteCommunityButton blockId={block.id} blockName={block.name} />}
               </div>
             )
           }

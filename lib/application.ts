@@ -1,7 +1,8 @@
 import { getRepository } from './db'
 import { createSupabaseAdminClient } from './supabase-admin'
 import { sendEmail } from './email'
-import { escapeHtml, MAX_TEXT } from './validation'
+import { escapeHtml, MAX_TEXT, SIGNUP_PROMPT_KEYS } from './validation'
+import { adminEmails } from './admin'
 import { EXPEDITION_BLOCK_CODE, BORROWED_ITEM_COUNT, NEIGHBORS, PARTY_SIZE, runExpedition } from './expedition'
 import type { Block, BlockInput, ContactMethod, ContactVisibility, CorkboardNote, Residence, Resident, ResidentProfile, Steward } from './types'
 
@@ -10,11 +11,56 @@ import type { Block, BlockInput, ContactMethod, ContactVisibility, CorkboardNote
  * notes/minimal-schema-proposal.md's "Data access" section).
  */
 
-export async function createBlock(input: BlockInput, founderUserId: string): Promise<Block> {
+// A new community's sign-up form starts short: just "About you". Stewards can turn the rest on.
+const SIGNUP_PROMPTS_HIDDEN_FOR_NEW_COMMUNITIES = SIGNUP_PROMPT_KEYS.filter((key) => key !== 'blurb')
+
+export async function createBlock(input: BlockInput, founder: { id: string; email: string | null }): Promise<Block> {
   const repo = getRepository()
-  const block = await repo.blocks.create(input)
-  await repo.stewards.createFounding(block.id, founderUserId)
+  const block = await repo.blocks.create({ hiddenSignupPrompts: SIGNUP_PROMPTS_HIDDEN_FOR_NEW_COMMUNITIES, ...input })
+  await repo.stewards.createFounding(block.id, founder.id)
+  await notifyAdminsOfNewCommunity(block, founder.email)
   return block
+}
+
+async function notifyAdminsOfNewCommunity(block: Block, founderEmail: string | null): Promise<void> {
+  const siteUrl = process.env.SITE_URL
+  const link = siteUrl ? `<p><a href="${siteUrl}/${encodeURIComponent(block.code)}">Open ${escapeHtml(block.name)}</a></p>` : ''
+  await sendEmail({
+    to: adminEmails(),
+    replyTo: founderEmail ?? undefined,
+    subject: `New community on Our Block: ${block.name}`,
+    html: `<p><strong>${escapeHtml(founderEmail ?? 'Someone')}</strong> just created <strong>${escapeHtml(block.name)}</strong>.</p>${link}`,
+  })
+}
+
+/** Communities this user created (as founding steward), not ones they were later made a steward of. */
+export async function countFoundedCommunities(userId: string): Promise<number> {
+  const stewards = await getRepository().stewards.listByUserId(userId)
+  return stewards.filter((steward) => steward.addedBy === null).length
+}
+
+/** True once anyone besides the steward themselves has registered — from then on the community holds other people's data. */
+export function hasNeighborsBesides(residents: Resident[], ownResidentId: string | null): boolean {
+  return residents.some((resident) => resident.id !== ownResidentId)
+}
+
+export type DeleteCommunityResult = { error: string; status: number } | { ok: true }
+
+/** A steward can delete their own community until a neighbor joins. After that, only an admin can (see /api/admin/blocks). */
+export async function deleteCommunityBeforeNeighborsJoin(blockId: string, userId: string): Promise<DeleteCommunityResult> {
+  const repo = getRepository()
+  if (!(await resolveActiveSteward(blockId, userId))) return { error: 'Not authorized', status: 403 }
+
+  const [residents, ownResident] = await Promise.all([
+    repo.residents.listByBlock(blockId),
+    resolveApprovedResident(blockId, userId),
+  ])
+  if (hasNeighborsBesides(residents, ownResident?.id ?? null)) {
+    return { error: 'Neighbors have already joined, so this community can’t be deleted here.', status: 409 }
+  }
+
+  await repo.blocks.delete(blockId)
+  return { ok: true }
 }
 
 export async function registerResident(
@@ -318,6 +364,7 @@ export async function authorizeOwnResident(residentId: string, userId: string): 
   const repo = getRepository()
   const resident = await repo.residents.getById(residentId)
   if (!resident) return { error: 'Resident not found', status: 404 }
+  if (resident.status === 'moved_out') return { error: 'Not authorized', status: 403 }
 
   const contacts = await repo.contactMethods.listByResident(residentId)
   const owns = contacts.some((c) => c.userId === userId)

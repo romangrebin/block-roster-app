@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
-import { resolveActiveSteward } from '@/lib/application'
+import { resolveActiveSteward, deleteCommunityBeforeNeighborsJoin } from '@/lib/application'
 import { getRepository } from '@/lib/db'
 import { validateBlockCode, blockCodeErrorMessage } from '@/lib/blockCode'
 import { cappedText, MAX_TEXT, parseSignupPromptKeys } from '@/lib/validation'
+import { validatePolygonGeometry, MAX_BLOCK_AREA_KM2 } from '@/lib/geometryValidation'
 import { clientErrorMessage } from '@/lib/apiError'
 import type { BlockInput } from '@/lib/types'
 
-// Steward-only: edits the community's name, code, public blurb, and private notes. Creating a
-// community and drawing its boundary happen elsewhere (app/api/blocks/route.ts) — this route is
-// just for the content a steward keeps up to date afterward.
+// Steward-only: edits the community's name, code, boundary, public blurb, private notes and
+// settings, or deletes it before any neighbor has joined. Creating one is app/api/blocks/route.ts.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser(request)
   if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
@@ -33,6 +33,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     patch.code = result.code
   }
+  if (body.boundary) {
+    const validation = validatePolygonGeometry(body.boundary, MAX_BLOCK_AREA_KM2)
+    if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 })
+    patch.boundary = body.boundary
+  }
   if (typeof body.publicBlurb === 'string') patch.publicBlurb = cappedText(body.publicBlurb, MAX_TEXT.publicBlurb) || null
   if (typeof body.privateNotes === 'string') patch.privateNotes = cappedText(body.privateNotes, MAX_TEXT.privateNotes) || null
   if (typeof body.residentExportEnabled === 'boolean') patch.residentExportEnabled = body.residentExportEnabled
@@ -48,4 +53,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (err) {
     return NextResponse.json({ error: clientErrorMessage(err, 'Failed to update community') }, { status: 400 })
   }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUser(request)
+  if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+
+  const { id: blockId } = await params
+  const result = await deleteCommunityBeforeNeighborsJoin(blockId, user.id)
+  if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status })
+  return NextResponse.json({ ok: true })
 }

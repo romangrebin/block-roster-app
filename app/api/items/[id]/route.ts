@@ -27,7 +27,7 @@ async function authorizeItemAccess(
   if (!resident) return { error: NextResponse.json({ error: 'Item not found' }, { status: 404 }) }
 
   const contacts = await repo.contactMethods.listByResident(resident.id)
-  if (contacts.some((c) => c.userId === user.id)) return { repo }
+  if (resident.status !== 'moved_out' && contacts.some((c) => c.userId === user.id)) return { repo }
 
   const residence = await repo.residences.getById(resident.residenceId)
   const steward = residence ? await resolveActiveSteward(residence.blockId, user.id) : null
