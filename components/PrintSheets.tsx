@@ -6,14 +6,16 @@ import {
   fitText,
   householdNames,
   placeHouses,
+  printQrUrl,
+  printTextLink,
+  qrCodePath,
   spreadLabels,
-  type Box,
   type PlacedHouse,
   type PrintEntry,
   type PrintResident,
 } from '@/lib/printSheet'
 
-type LayoutKey = 'map-and-directory' | 'names-on-map' | 'fill-in'
+type LayoutKey = 'map-and-directory' | 'fill-in'
 type VersionKey = 'filled' | 'blank'
 
 const LAYOUT_OPTIONS: { key: LayoutKey; label: string; description: string }[] = [
@@ -21,11 +23,6 @@ const LAYOUT_OPTIONS: { key: LayoutKey; label: string; description: string }[] =
     key: 'map-and-directory',
     label: 'Map + directory',
     description: 'A numbered map with names down both sides, plus a second page for contact info and more about each household.',
-  },
-  {
-    key: 'names-on-map',
-    label: 'Names on the map',
-    description: 'Names printed right beside each house, plus a second page for contact info and more about each household.',
   },
   {
     key: 'fill-in',
@@ -51,15 +48,16 @@ const COLUMNS = {
   right: { x: PAGE_WIDTH - COLUMN_WIDTH, innerEdge: PAGE_WIDTH - COLUMN_WIDTH },
 }
 
-const MAP_BOXES: Record<LayoutKey, Box> = {
-  'map-and-directory': { x: 166, y: CONTENT_TOP, width: 208, height: CONTENT_BOTTOM - CONTENT_TOP },
-  'names-on-map': { x: 140, y: CONTENT_TOP, width: 260, height: CONTENT_BOTTOM - CONTENT_TOP },
-  'fill-in': { x: 166, y: CONTENT_TOP, width: 208, height: CONTENT_BOTTOM - CONTENT_TOP },
-}
+// The QR code and link sit at the bottom of the middle column, below the map and between the label columns.
+const QR_SIZE = 64
+const QR_LINK_FONT_SIZE = 7.5
+const QR_TOP = CONTENT_BOTTOM - QR_LINK_FONT_SIZE - 6 - QR_SIZE
+const MAP_BOTTOM = QR_TOP - 16
+
+const MAP_BOX = { x: 166, y: CONTENT_TOP, width: 208, height: MAP_BOTTOM - CONTENT_TOP }
 
 const PREFERRED_LABEL_HEIGHT: Record<LayoutKey, number> = {
   'map-and-directory': 26,
-  'names-on-map': 24,
   'fill-in': 42,
 }
 
@@ -82,10 +80,14 @@ function useTodayOnClient(): string {
 
 export default function PrintSheets({
   blockName,
+  code,
+  printCode,
   entries,
   blankOnly = false,
 }: {
   blockName: string
+  code: string
+  printCode: string
   entries: PrintEntry[]
   blankOnly?: boolean
 }) {
@@ -94,7 +96,7 @@ export default function PrintSheets({
   const filled = version === 'filled'
   const today = useTodayOnClient()
   const asOf = today ? `As of ${today}` : ''
-  const houses = placeHouses(entries, MAP_BOXES[layout])
+  const houses = placeHouses(entries, MAP_BOX)
   const hasDirectoryPage = layout !== 'fill-in'
 
   return (
@@ -126,7 +128,15 @@ export default function PrintSheets({
       <div className="overflow-x-auto print:overflow-visible">
         <div className="w-[8.5in] mx-auto space-y-6 print:w-auto print:space-y-0">
           <Paper className={hasDirectoryPage ? 'break-after-page' : ''}>
-            <MapPage layout={layout} filled={filled} blockName={blockName} asOf={asOf} houses={houses} />
+            <MapPage
+              layout={layout}
+              filled={filled}
+              blockName={blockName}
+              asOf={asOf}
+              houses={houses}
+              qrUrl={printQrUrl(printCode)}
+              textLink={printTextLink(code)}
+            />
           </Paper>
           {hasDirectoryPage && (
             <Paper>
@@ -189,12 +199,16 @@ function MapPage({
   blockName,
   asOf,
   houses,
+  qrUrl,
+  textLink,
 }: {
   layout: LayoutKey
   filled: boolean
   blockName: string
   asOf: string
   houses: PlacedHouse[]
+  qrUrl: string
+  textLink: string
 }) {
   return (
     <svg
@@ -240,7 +254,26 @@ function MapPage({
 
       <SideLabels layout={layout} filled={filled} houses={houses.filter((house) => house.side === 'left')} />
       <SideLabels layout={layout} filled={filled} houses={houses.filter((house) => house.side === 'right')} />
+      <QrCodeWithLink qrUrl={qrUrl} textLink={textLink} />
     </svg>
+  )
+}
+
+function QrCodeWithLink({ qrUrl, textLink }: { qrUrl: string; textLink: string }) {
+  const qr = qrCodePath(qrUrl)
+  const centerX = PAGE_WIDTH / 2
+  return (
+    <g>
+      <path
+        d={qr.path}
+        fill={INK}
+        transform={`translate(${centerX - QR_SIZE / 2} ${QR_TOP}) scale(${QR_SIZE / qr.size})`}
+        shapeRendering="crispEdges"
+      />
+      <text x={centerX} y={CONTENT_BOTTOM} fontSize={QR_LINK_FONT_SIZE} fill={MUTED} textAnchor="middle">
+        {fitText(textLink, MAP_BOX.width, QR_LINK_FONT_SIZE)}
+      </text>
+    </g>
   )
 }
 
@@ -248,7 +281,6 @@ type LabelProps = { house: PlacedHouse; top: number; height: number; filled: boo
 
 const LABELS: Record<LayoutKey, (props: LabelProps) => ReactNode> = {
   'map-and-directory': NumberedLabel,
-  'names-on-map': LabelBesideHouse,
   'fill-in': FillInLabel,
 }
 
@@ -298,45 +330,6 @@ function NumberedLabel({ house, top, height, filled }: LabelProps) {
         </text>
       )}
       <line x1={column.x} x2={column.x + COLUMN_WIDTH} y1={writingLineY} y2={writingLineY} stroke={RULE} strokeWidth={0.5} />
-    </g>
-  )
-}
-
-function LabelBesideHouse({ house, top, height, filled }: LabelProps) {
-  const isLeft = house.side === 'left'
-  const houseEdge = isLeft ? house.leftEdge : house.rightEdge
-  const textX = isLeft ? houseEdge - 6 : houseEdge + 6
-  const roomForText = isLeft ? textX : PAGE_WIDTH - textX
-  const textAnchor = isLeft ? 'end' : 'start'
-  const names = householdNames(house.entry.residents)
-  const blankLineLength = Math.min(80, roomForText)
-  return (
-    <g>
-      <line
-        x1={houseEdge}
-        y1={house.center.y}
-        x2={textX + (isLeft ? 2 : -2)}
-        y2={top + height / 2}
-        stroke={RULE}
-        strokeWidth={0.5}
-      />
-      <text x={textX} y={top + 8} fontSize={7} fill={MUTED} textAnchor={textAnchor}>
-        {fitText(house.entry.label, roomForText, 7)}
-      </text>
-      {filled && names ? (
-        <text x={textX} y={top + 18} fontSize={9} fontWeight={600} fill={INK} textAnchor={textAnchor}>
-          {fitText(names, roomForText, 9)}
-        </text>
-      ) : (
-        <line
-          x1={textX}
-          x2={isLeft ? textX - blankLineLength : textX + blankLineLength}
-          y1={top + 19}
-          y2={top + 19}
-          stroke={RULE}
-          strokeWidth={0.5}
-        />
-      )}
     </g>
   )
 }

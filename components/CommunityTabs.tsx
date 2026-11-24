@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-type TabKey = 'join' | 'community' | 'library' | 'expedition' | 'print' | 'my-info' | 'manage'
+type TabKey = 'join' | 'community' | 'library' | 'corkboard' | 'expedition' | 'print' | 'my-info' | 'manage'
 
 /**
  * Splits the community page into tabs once there's more than one thing to show — the same
@@ -21,6 +21,7 @@ export default function CommunityTabs({
   join,
   community,
   library,
+  corkboard,
   expedition,
   print,
   myInfo,
@@ -29,6 +30,7 @@ export default function CommunityTabs({
   join?: ReactNode
   community?: ReactNode
   library?: ReactNode
+  corkboard?: ReactNode
   expedition?: ReactNode
   print?: ReactNode
   myInfo?: ReactNode
@@ -38,6 +40,7 @@ export default function CommunityTabs({
     ...(join ? [{ key: 'join' as const, label: 'Join', content: join }] : []),
     ...(community ? [{ key: 'community' as const, label: 'Community', content: community }] : []),
     ...(library ? [{ key: 'library' as const, label: 'Lending Library', content: library }] : []),
+    ...(corkboard ? [{ key: 'corkboard' as const, label: 'Corkboard', content: corkboard }] : []),
     ...(expedition ? [{ key: 'expedition' as const, label: 'Expedition', content: expedition }] : []),
     ...(print ? [{ key: 'print' as const, label: 'Print', content: print }] : []),
     ...(myInfo ? [{ key: 'my-info' as const, label: 'My info', content: myInfo }] : []),

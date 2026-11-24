@@ -9,6 +9,9 @@ import type {
   StewardRepository,
   ItemRepository,
   BorrowRequestRepository,
+  CorkboardNoteRepository,
+  CorkboardInterestRepository,
+  CorkboardPhotoStorage,
   ExpeditionRunRepository,
   BlockRosterRepository,
 } from '../repository'
@@ -26,6 +29,8 @@ import type {
   Item,
   ItemCategory,
   BorrowRequest,
+  CorkboardNote,
+  CorkboardInterest,
   ExpeditionRun,
 } from '../types'
 
@@ -49,7 +54,9 @@ type BlockRow = {
   auto_approve_joins: boolean
   hidden_signup_prompts: SignupPromptKey[]
   borrow_requests_enabled: boolean
+  corkboard_enabled: boolean
   code: string
+  print_code: string
   public_blurb: string | null
   private_notes: string | null
   created_at: string
@@ -120,6 +127,23 @@ type BorrowRequestRow = {
   requested_at: string
 }
 
+type CorkboardNoteRow = {
+  id: string
+  resident_id: string
+  text: string | null
+  image_path: string | null
+  board_column: number
+  position: number
+  created_at: string
+  updated_at: string | null
+}
+
+type CorkboardInterestRow = {
+  note_id: string
+  resident_id: string
+  created_at: string
+}
+
 type ExpeditionRunRow = {
   id: string
   resident_id: string
@@ -144,7 +168,9 @@ function toBlock(row: BlockRow): Block {
     autoApproveJoins: row.auto_approve_joins,
     hiddenSignupPrompts: row.hidden_signup_prompts,
     borrowRequestsEnabled: row.borrow_requests_enabled,
+    corkboardEnabled: row.corkboard_enabled,
     code: row.code,
+    printCode: row.print_code,
     publicBlurb: row.public_blurb,
     privateNotes: row.private_notes,
     createdAt: row.created_at,
@@ -230,6 +256,23 @@ function toItem(row: ItemRow): Item {
   }
 }
 
+function toCorkboardNote(row: CorkboardNoteRow): CorkboardNote {
+  return {
+    id: row.id,
+    residentId: row.resident_id,
+    text: row.text,
+    imagePath: row.image_path,
+    boardColumn: row.board_column,
+    position: row.position,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function toCorkboardInterest(row: CorkboardInterestRow): CorkboardInterest {
+  return { noteId: row.note_id, residentId: row.resident_id, createdAt: row.created_at }
+}
+
 function toBorrowRequest(row: BorrowRequestRow): BorrowRequest {
   return { itemId: row.item_id, requesterId: row.requester_id, requestedAt: row.requested_at }
 }
@@ -291,6 +334,11 @@ function createBlockRepository(client: SupabaseClient): BlockRepository {
       if (error) throw new Error(`[supabase adapter] blocks.getByCode: ${error.message}`)
       return data ? toBlock(data as BlockRow) : null
     },
+    async getByPrintCode(printCode) {
+      const { data, error } = await client.from('blocks').select().eq('print_code', printCode).maybeSingle()
+      if (error) throw new Error(`[supabase adapter] blocks.getByPrintCode: ${error.message}`)
+      return data ? toBlock(data as BlockRow) : null
+    },
     async listByIds(ids) {
       if (ids.length === 0) return []
       const { data, error } = await client.from('blocks').select().in('id', ids)
@@ -316,6 +364,7 @@ function createBlockRepository(client: SupabaseClient): BlockRepository {
       if (input.autoApproveJoins !== undefined) patch.auto_approve_joins = input.autoApproveJoins
       if (input.hiddenSignupPrompts !== undefined) patch.hidden_signup_prompts = input.hiddenSignupPrompts
       if (input.borrowRequestsEnabled !== undefined) patch.borrow_requests_enabled = input.borrowRequestsEnabled
+      if (input.corkboardEnabled !== undefined) patch.corkboard_enabled = input.corkboardEnabled
       const { data, error } = await client.from('blocks').update(patch).eq('id', id).select().single()
       if (error) {
         if (error.code === UNIQUE_VIOLATION) throw new Error('That code is already taken.')
@@ -614,6 +663,21 @@ function createStewardRepository(client: SupabaseClient): StewardRepository {
   }
 }
 
+/**
+ * Every resident id in a block, whatever their status. Items and corkboard notes have no block_id
+ * of their own (they belong to a resident, not an address), so listing a block's rows goes
+ * through residents -> residences via Supabase's embedded-resource filtering, the join pattern
+ * PostgREST supports natively.
+ */
+async function listResidentIdsInBlock(client: SupabaseClient, blockId: string, caller: string): Promise<string[]> {
+  const { data, error } = await client
+    .from('residents')
+    .select('id, residences!inner(block_id)')
+    .eq('residences.block_id', blockId)
+  if (error) throw new Error(`[supabase adapter] ${caller}: ${error.message}`)
+  return (data as { id: string }[]).map((r) => r.id)
+}
+
 function createItemRepository(client: SupabaseClient): ItemRepository {
   return {
     async create(input) {
@@ -644,15 +708,7 @@ function createItemRepository(client: SupabaseClient): ItemRepository {
       return (data as ItemRow[]).map(toItem)
     },
     async listByBlock(blockId) {
-      // items has no block_id of its own (deliberately — it belongs to a resident, not an
-      // address), so this goes through residents -> residences via Supabase's embedded-resource
-      // filtering rather than a raw join, matching the read pattern PostgREST supports natively.
-      const { data: residentRows, error: residentsError } = await client
-        .from('residents')
-        .select('id, residences!inner(block_id)')
-        .eq('residences.block_id', blockId)
-      if (residentsError) throw new Error(`[supabase adapter] items.listByBlock: ${residentsError.message}`)
-      const residentIds = (residentRows as { id: string }[]).map((r) => r.id)
+      const residentIds = await listResidentIdsInBlock(client, blockId, 'items.listByBlock')
       if (residentIds.length === 0) return []
 
       const { data, error } = await client
@@ -710,6 +766,109 @@ function createBorrowRequestRepository(client: SupabaseClient): BorrowRequestRep
   }
 }
 
+function createCorkboardNoteRepository(client: SupabaseClient): CorkboardNoteRepository {
+  return {
+    async create(residentId, text, boardColumn) {
+      const { data, error } = await client
+        .from('corkboard_notes')
+        .insert({ resident_id: residentId, text, board_column: boardColumn })
+        .select()
+        .single()
+      return toCorkboardNote(requireNoError(data as CorkboardNoteRow | null, error, 'corkboardNotes.create'))
+    },
+    async getById(id) {
+      const { data, error } = await client.from('corkboard_notes').select().eq('id', id).maybeSingle()
+      if (error) throw new Error(`[supabase adapter] corkboardNotes.getById: ${error.message}`)
+      return data ? toCorkboardNote(data as CorkboardNoteRow) : null
+    },
+    async listByBlock(blockId) {
+      const residentIds = await listResidentIdsInBlock(client, blockId, 'corkboardNotes.listByBlock')
+      if (residentIds.length === 0) return []
+      const { data, error } = await client
+        .from('corkboard_notes')
+        .select()
+        .in('resident_id', residentIds)
+        .order('position', { ascending: true })
+      if (error) throw new Error(`[supabase adapter] corkboardNotes.listByBlock: ${error.message}`)
+      return (data as CorkboardNoteRow[]).map(toCorkboardNote)
+    },
+    async updateText(id, text) {
+      const { data, error } = await client
+        .from('corkboard_notes')
+        .update({ text, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+      return toCorkboardNote(requireNoError(data as CorkboardNoteRow | null, error, 'corkboardNotes.updateText'))
+    },
+    async setLayout(columns) {
+      // One update per note is fine: a board holds a handful of notes.
+      const results = await Promise.all(
+        columns.flatMap((noteIds, boardColumn) =>
+          noteIds.map((id, position) =>
+            client.from('corkboard_notes').update({ board_column: boardColumn, position }).eq('id', id)
+          )
+        )
+      )
+      const failed = results.find((result) => result.error)
+      if (failed?.error) throw new Error(`[supabase adapter] corkboardNotes.setLayout: ${failed.error.message}`)
+    },
+    async delete(id) {
+      const { error } = await client.from('corkboard_notes').delete().eq('id', id)
+      if (error) throw new Error(`[supabase adapter] corkboardNotes.delete: ${error.message}`)
+    },
+  }
+}
+
+function createCorkboardInterestRepository(client: SupabaseClient): CorkboardInterestRepository {
+  return {
+    async add(noteId, residentId) {
+      const { error } = await client
+        .from('corkboard_interests')
+        .upsert({ note_id: noteId, resident_id: residentId }, { ignoreDuplicates: true })
+      if (error) throw new Error(`[supabase adapter] corkboardInterests.add: ${error.message}`)
+    },
+    async remove(noteId, residentId) {
+      const { error } = await client
+        .from('corkboard_interests')
+        .delete()
+        .eq('note_id', noteId)
+        .eq('resident_id', residentId)
+      if (error) throw new Error(`[supabase adapter] corkboardInterests.remove: ${error.message}`)
+    },
+    async listByNotes(noteIds) {
+      if (noteIds.length === 0) return []
+      const { data, error } = await client
+        .from('corkboard_interests')
+        .select()
+        .in('note_id', noteIds)
+        .order('created_at', { ascending: true })
+      if (error) throw new Error(`[supabase adapter] corkboardInterests.listByNotes: ${error.message}`)
+      return (data as CorkboardInterestRow[]).map(toCorkboardInterest)
+    },
+  }
+}
+
+const CORKBOARD_PHOTOS_BUCKET = 'corkboard-photos'
+const PHOTO_URL_LIFETIME_SECONDS = 60 * 60
+
+function createCorkboardPhotoStorage(client: SupabaseClient): CorkboardPhotoStorage {
+  return {
+    async createViewUrls(paths) {
+      if (paths.length === 0) return new Map()
+      const { data, error } = await client.storage
+        .from(CORKBOARD_PHOTOS_BUCKET)
+        .createSignedUrls(paths, PHOTO_URL_LIFETIME_SECONDS)
+      if (error) throw new Error(`[supabase adapter] corkboardPhotos.createViewUrls: ${error.message}`)
+      return new Map(data.flatMap(({ path, signedUrl }) => (path && signedUrl ? [[path, signedUrl]] : [])))
+    },
+    async remove(path) {
+      const { error } = await client.storage.from(CORKBOARD_PHOTOS_BUCKET).remove([path])
+      if (error) throw new Error(`[supabase adapter] corkboardPhotos.remove: ${error.message}`)
+    },
+  }
+}
+
 function createExpeditionRunRepository(client: SupabaseClient): ExpeditionRunRepository {
   return {
     async create(input) {
@@ -752,6 +911,9 @@ export function createSupabaseRepository(client: SupabaseClient): BlockRosterRep
     stewards: createStewardRepository(client),
     items: createItemRepository(client),
     borrowRequests: createBorrowRequestRepository(client),
+    corkboardNotes: createCorkboardNoteRepository(client),
+    corkboardInterests: createCorkboardInterestRepository(client),
+    corkboardPhotos: createCorkboardPhotoStorage(client),
     expeditionRuns: createExpeditionRunRepository(client),
   }
 }

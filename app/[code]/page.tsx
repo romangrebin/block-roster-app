@@ -14,6 +14,7 @@ import MyInfoForm from '@/components/MyInfoForm'
 import PageContainer from '@/components/PageContainer'
 import CommunityTabs from '@/components/CommunityTabs'
 import LendingLibrarySection, { type LibraryItem } from '@/components/LendingLibrarySection'
+import CorkboardSection, { type BoardNote } from '@/components/CorkboardSection'
 import MarkdownText from '@/components/MarkdownText'
 import { pickProfile } from '@/lib/residentProfile'
 import { EXPEDITION_BLOCK_CODE } from '@/lib/expedition'
@@ -96,17 +97,18 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
   }
 
   // Reuses the same steward-full/peer-safe resident+contact data already fetched above, keyed by
-  // resident instead of residence — items belong to a resident, and this is exactly the same
-  // "who's allowed to see whose contact info" split getResidentDirectory already computed, so
-  // there's no separate visibility logic to write for the Lending Library's owner-contact display.
+  // resident instead of residence — items and corkboard notes belong to a resident, and this is
+  // exactly the same "who's allowed to see whose contact info" split getResidentDirectory already
+  // computed, so there's no separate visibility logic to write for owner/author contact display.
+  const residentInfoById = new Map<string, { name: string; contacts: ContactMethod[] }>()
+  for (const rows of residentsByResidence?.values() ?? []) {
+    for (const { resident, contacts } of rows) {
+      residentInfoById.set(resident.id, { name: resident.name, contacts })
+    }
+  }
+
   let libraryItems: LibraryItem[] = []
   if (block.lendingLibraryEnabled && hasPrivateAccess) {
-    const residentInfoById = new Map<string, { name: string; contacts: ContactMethod[] }>()
-    for (const rows of residentsByResidence?.values() ?? []) {
-      for (const { resident, contacts } of rows) {
-        residentInfoById.set(resident.id, { name: resident.name, contacts })
-      }
-    }
     const items = await repo.items.listByBlock(block.id)
     libraryItems = items.flatMap((item) => {
       const owner = residentInfoById.get(item.residentId)
@@ -115,6 +117,28 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
       // A moved-out owner's stale listing just quietly stops showing to peers this way, same as
       // their contact info already does elsewhere on this page.
       return owner ? [{ item, ownerName: owner.name, ownerContacts: owner.contacts }] : []
+    })
+  }
+
+  // Notes and raised hands from residents the viewer can't see (e.g. moved out, for a peer) drop
+  // out the same way their library items do.
+  let boardNotes: BoardNote[] = []
+  if (block.corkboardEnabled && hasPrivateAccess) {
+    const notes = (await repo.corkboardNotes.listByBlock(block.id)).filter((note) => residentInfoById.has(note.residentId))
+    const [interests, photoUrls] = await Promise.all([
+      repo.corkboardInterests.listByNotes(notes.map((note) => note.id)),
+      repo.corkboardPhotos.createViewUrls(notes.flatMap((note) => note.imagePath ?? [])),
+    ])
+    boardNotes = notes.map((note) => {
+      const author = residentInfoById.get(note.residentId)!
+      const interestedResidentIds = interests.filter((i) => i.noteId === note.id).map((i) => i.residentId)
+      return {
+        note,
+        photoUrl: note.imagePath ? (photoUrls.get(note.imagePath) ?? null) : null,
+        authorName: author.name,
+        interestedNames: interestedResidentIds.flatMap((id) => residentInfoById.get(id)?.name ?? []),
+        viewerIsInterested: viewerResident !== null && interestedResidentIds.includes(viewerResident.id),
+      }
     })
   }
 
@@ -184,6 +208,16 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
               />
             )
           }
+          corkboard={
+            block.corkboardEnabled && (
+              <CorkboardSection
+                blockId={block.id}
+                notes={boardNotes}
+                viewerResidentId={viewerResident?.id ?? null}
+                isSteward={isSteward}
+              />
+            )
+          }
           expedition={
             isExpedition && (
               <ExpeditionGame
@@ -193,7 +227,14 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
               />
             )
           }
-          print={<PrintSheets blockName={block.name} entries={buildPrintEntries(peerDirectory)} />}
+          print={
+            <PrintSheets
+              blockName={block.name}
+              code={block.code}
+              printCode={block.printCode}
+              entries={buildPrintEntries(peerDirectory)}
+            />
+          }
           myInfo={
             viewerResident ? (
               <MyInfoForm
@@ -246,6 +287,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
                   residentExportEnabled={block.residentExportEnabled}
                   lendingLibraryEnabled={block.lendingLibraryEnabled}
                   borrowRequestsEnabled={block.borrowRequestsEnabled}
+                  corkboardEnabled={block.corkboardEnabled}
                   autoApproveJoins={block.autoApproveJoins}
                   hiddenSignupPrompts={block.hiddenSignupPrompts}
                 />
@@ -294,6 +336,8 @@ export default async function CommunityPage({ params }: { params: Promise<{ code
             residences.length > 0 && (
               <PrintSheets
                 blockName={block.name}
+                code={block.code}
+                printCode={block.printCode}
                 entries={buildPrintEntries(residences.map((residence) => ({ residence, residents: [] })))}
                 blankOnly
               />

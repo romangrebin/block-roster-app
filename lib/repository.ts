@@ -13,6 +13,8 @@ import type {
   Item,
   ItemInput,
   BorrowRequest,
+  CorkboardNote,
+  CorkboardInterest,
   ExpeditionRun,
 } from './types'
 
@@ -27,6 +29,7 @@ export interface BlockRepository {
   create(input: BlockInput): Promise<Block>
   getById(id: string): Promise<Block | null>
   getByCode(code: string): Promise<Block | null>
+  getByPrintCode(printCode: string): Promise<Block | null>
   // Batched getById — resolving a user's memberships means looking up several blocks by id at
   // once; one query beats N round-trips. See listApprovedResidentBlocks in lib/application.ts.
   listByIds(ids: string[]): Promise<Block[]>
@@ -116,6 +119,35 @@ export interface BorrowRequestRepository {
   listByRequester(requesterId: string): Promise<BorrowRequest[]>
 }
 
+export interface CorkboardNoteRepository {
+  // Creates a text note at the top of the given column. Photo notes are only added by hand for now.
+  create(residentId: string, text: string, boardColumn: number): Promise<CorkboardNote>
+  getById(id: string): Promise<CorkboardNote | null>
+  // Ordered by position (within-column order). Like items.listByBlock, doesn't filter by author
+  // status: callers cross-reference against the residents the viewer is allowed to see.
+  listByBlock(blockId: string): Promise<CorkboardNote[]>
+  updateText(id: string, text: string): Promise<CorkboardNote>
+  // `columns[c]` lists the note ids in column c, top to bottom; each note gets that column and
+  // its index in the list as its position.
+  setLayout(columns: string[][]): Promise<void>
+  delete(id: string): Promise<void>
+}
+
+// Files in the private corkboard-photos bucket.
+export interface CorkboardPhotoStorage {
+  // Short-lived URLs a browser can load, keyed by path. Paths with no file are left out.
+  createViewUrls(paths: string[]): Promise<Map<string, string>>
+  remove(path: string): Promise<void>
+}
+
+export interface CorkboardInterestRepository {
+  // Adding an interest that already exists is a no-op.
+  add(noteId: string, residentId: string): Promise<void>
+  remove(noteId: string, residentId: string): Promise<void>
+  // Oldest first, so names appear in the order people raised their hands.
+  listByNotes(noteIds: string[]): Promise<CorkboardInterest[]>
+}
+
 export interface ExpeditionRunRepository {
   create(input: Omit<ExpeditionRun, 'id' | 'createdAt'>): Promise<ExpeditionRun>
   getById(id: string): Promise<ExpeditionRun | null>
@@ -132,5 +164,8 @@ export type BlockRosterRepository = {
   stewards: StewardRepository
   items: ItemRepository
   borrowRequests: BorrowRequestRepository
+  corkboardNotes: CorkboardNoteRepository
+  corkboardInterests: CorkboardInterestRepository
+  corkboardPhotos: CorkboardPhotoStorage
   expeditionRuns: ExpeditionRunRepository
 }

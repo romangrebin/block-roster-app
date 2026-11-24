@@ -3,7 +3,7 @@ import { createSupabaseAdminClient } from './supabase-admin'
 import { sendEmail } from './email'
 import { escapeHtml, MAX_TEXT } from './validation'
 import { EXPEDITION_BLOCK_CODE, BORROWED_ITEM_COUNT, NEIGHBORS, PARTY_SIZE, runExpedition } from './expedition'
-import type { Block, BlockInput, ContactMethod, ContactVisibility, Residence, Resident, ResidentProfile, Steward } from './types'
+import type { Block, BlockInput, ContactMethod, ContactVisibility, CorkboardNote, Residence, Resident, ResidentProfile, Steward } from './types'
 
 /**
  * Cross-table invariants that no single repository method can enforce alone (see
@@ -504,6 +504,31 @@ export async function listRequestedItemIds(
   return requests
     .filter((r) => includeExpired || Date.now() - Date.parse(r.requestedAt) < BORROW_REQUEST_COOLDOWN_MS)
     .map((r) => r.itemId)
+}
+
+export type CorkboardNoteAccess =
+  | { error: string; status: number }
+  | { note: CorkboardNote; viewer: Resident | null; isAuthor: boolean; isSteward: boolean }
+
+/**
+ * Loads a corkboard note and works out who the signed-in user is to it: its author, another
+ * approved resident of the same community (`viewer`), and/or one of its stewards. A steward may
+ * have no resident row of their own, so `viewer` can be null. Anyone else gets an error.
+ */
+export async function resolveCorkboardNoteAccess(noteId: string, userId: string): Promise<CorkboardNoteAccess> {
+  const repo = getRepository()
+  const note = await repo.corkboardNotes.getById(noteId)
+  const author = note ? await repo.residents.getById(note.residentId) : null
+  const residence = author ? await repo.residences.getById(author.residenceId) : null
+  const block = residence ? await repo.blocks.getById(residence.blockId) : null
+  if (!note || !block?.corkboardEnabled) return { error: 'Note not found', status: 404 }
+
+  const [viewer, steward] = await Promise.all([
+    resolveApprovedResident(block.id, userId),
+    resolveActiveSteward(block.id, userId),
+  ])
+  if (!viewer && !steward) return { error: 'Not authorized', status: 403 }
+  return { note, viewer, isAuthor: viewer?.id === note.residentId, isSteward: steward !== null }
 }
 
 export type PastExpedition = {
